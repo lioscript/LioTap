@@ -174,7 +174,14 @@ export function startBot(): void {
     const userId   = msg.from!.id;
     const username = msg.from!.username ?? `user${userId}`;
     const param    = (match?.[1] ?? "").trim();
-    const firstName = msg.from!.first_name ?? username;
+
+    // Always remove old reply keyboard first
+    try {
+      const rm = await bot.sendMessage(chatId, "...", {
+        reply_markup: { remove_keyboard: true },
+      });
+      await bot.deleteMessage(chatId, rm.message_id);
+    } catch { /* ignore */ }
 
     let existing = getUser(userId);
 
@@ -508,28 +515,42 @@ export function startBot(): void {
 
         // Create CryptoBot invoice
         try {
+          logger.info({ orderId, amount }, "Creating CryptoBot invoice");
           const invoice = await createInvoice(
             amount,
             `LioTap: ${productStr} (${periodName})`,
             orderId,
           );
+          logger.info({ invoiceId: invoice.invoiceId, payUrl: invoice.payUrl }, "CryptoBot invoice created");
           addPendingPayment(orderId, userId, purchase);
+
+          // Delete the "choose payment" message and send fresh invoice
+          try { await bot.deleteMessage(chatId, msgId); } catch { /* ignore */ }
 
           const sentMsg = await bot.sendMessage(chatId, invoiceText, {
             parse_mode: "HTML",
             reply_markup: cryptoInvoiceKeyboard(lang, invoice.payUrl),
           });
-          try { await bot.deleteMessage(chatId, msgId); } catch { /* ignore */ }
 
           // Start polling for this invoice
           cryptoPolling.set(invoice.invoiceId, {
             userId, purchase, chatId, msgId: sentMsg.message_id,
           });
 
+          // Notify admin
+          await notifyAdmin(
+            `🤖 <b>Новий запит (Crypto Bot)</b>\n` +
+            `👤 @${user.username}\n🎮 ${productStr}\n` +
+            `⏳ ${periodName}\n💰 <b>${amount} USDT</b>\n` +
+            `🆔 <code>${orderId}</code>\n` +
+            `✅ Рахунок створено — оплата автоматична`,
+          );
+
         } catch (err) {
-          logger.error({ err }, "CryptoBot invoice creation failed");
+          logger.error({ err }, "CryptoBot invoice creation FAILED");
           await bot.sendMessage(chatId,
-            "⚠️ Помилка створення рахунку. Спробуйте ще раз або оберіть інший спосіб оплати.",
+            "⚠️ <b>Помилка створення рахунку.</b>\n\nСпробуйте ще раз або оберіть картку / голду.",
+            { parse_mode: "HTML" },
           );
         }
 
