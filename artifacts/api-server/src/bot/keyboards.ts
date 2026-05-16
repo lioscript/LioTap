@@ -2,6 +2,17 @@ import TelegramBot from "node-telegram-bot-api";
 import type { Lang } from "./i18n";
 import { t } from "./i18n";
 
+type InlineButton = TelegramBot.InlineKeyboardButton;
+
+// Helper to make a copy_text button (Telegram Bot API 7.11+)
+function copyBtn(label: string, textToCopy: string): InlineButton {
+  return {
+    text: label,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    copy_text: { text: textToCopy },
+  } as InlineButton;
+}
+
 export function langKeyboard(): TelegramBot.InlineKeyboardMarkup {
   return {
     inline_keyboard: [
@@ -14,14 +25,14 @@ export function langKeyboard(): TelegramBot.InlineKeyboardMarkup {
   };
 }
 
-export function mainMenuKeyboard(lang: Lang): TelegramBot.ReplyKeyboardMarkup {
+export function mainMenuKeyboard(lang: Lang): TelegramBot.InlineKeyboardMarkup {
   return {
-    keyboard: [
-      [{ text: t(lang, "buy_key") }, { text: t(lang, "reviews") }],
-      [{ text: t(lang, "help") }, { text: t(lang, "my_account") }],
+    inline_keyboard: [
+      [{ text: t(lang, "btn_buy"), callback_data: "menu_buy" }],
+      [{ text: t(lang, "btn_reviews"), callback_data: "menu_reviews" }],
+      [{ text: t(lang, "btn_help"), callback_data: "menu_help" }],
+      [{ text: t(lang, "btn_account"), callback_data: "menu_account" }],
     ],
-    resize_keyboard: true,
-    persistent: true,
   };
 }
 
@@ -78,24 +89,25 @@ export function cardInvoiceKeyboard(
   lang: Lang,
   orderId: string,
   cardNumber: string,
-  amount: string
+  amountStr: string
 ): TelegramBot.InlineKeyboardMarkup {
   return {
     inline_keyboard: [
-      [{ text: t(lang, "copy_card"), callback_data: `copy_card_${cardNumber}` }],
-      [{ text: t(lang, "copy_amount"), callback_data: `copy_amount_${amount}` }],
-      [{ text: t(lang, "check_payment"), callback_data: `check_${orderId}` }],
+      [copyBtn(t(lang, "btn_copy_card"), cardNumber)],
+      [copyBtn(t(lang, "btn_copy_amount"), amountStr)],
+      [{ text: t(lang, "btn_check"), callback_data: `check_${orderId}` }],
+      [{ text: t(lang, "back"), callback_data: "back_payment" }],
     ],
   };
 }
 
 export function cryptoInvoiceKeyboard(
   lang: Lang,
-  orderId: string
+  payUrl: string
 ): TelegramBot.InlineKeyboardMarkup {
   return {
     inline_keyboard: [
-      [{ text: t(lang, "check_payment"), callback_data: `check_${orderId}` }],
+      [{ text: t(lang, "btn_pay_crypto"), url: payUrl }],
     ],
   };
 }
@@ -106,7 +118,8 @@ export function goldInvoiceKeyboard(
 ): TelegramBot.InlineKeyboardMarkup {
   return {
     inline_keyboard: [
-      [{ text: t(lang, "check_payment"), callback_data: `check_${orderId}` }],
+      [{ text: t(lang, "btn_check"), callback_data: `check_${orderId}` }],
+      [{ text: t(lang, "back"), callback_data: "back_payment" }],
     ],
   };
 }
@@ -129,6 +142,7 @@ export function accountKeyboard(lang: Lang): TelegramBot.InlineKeyboardMarkup {
     inline_keyboard: [
       [{ text: t(lang, "my_purchases"), callback_data: "my_purchases" }],
       [{ text: t(lang, "change_lang"), callback_data: "change_lang" }],
+      [{ text: t(lang, "back"), callback_data: "back_main" }],
     ],
   };
 }
