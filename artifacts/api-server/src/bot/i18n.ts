@@ -123,7 +123,10 @@ export const texts: Record<Lang, Record<string, string>> = {
       "━━━━━━━━━━━━━━━━━━━━\n" +
       "💰 Сумма: <b>{amount} Gold</b>\n" +
       "━━━━━━━━━━━━━━━━━━━━\n\n" +
-      "📝 Переведите голду и нажмите «Проверить»",
+      "📝 <b>Инструкция:</b>\n" +
+      "🔺 Напишите <b>@li0nchik</b> чтобы провести оплату голдой\n" +
+      "🔺 Укажите Order ID: <code>{orderId}</code>\n" +
+      "🔺 После подтверждения нажмите «Проверить»",
 
     btn_pay_crypto: "💸 Оплатить через Crypto Bot",
     btn_check: "🔄 Проверить оплату",
@@ -270,7 +273,10 @@ export const texts: Record<Lang, Record<string, string>> = {
       "━━━━━━━━━━━━━━━━━━━━\n" +
       "💰 Amount: <b>{amount} Gold</b>\n" +
       "━━━━━━━━━━━━━━━━━━━━\n\n" +
-      "📝 Transfer gold and press «Check»",
+      "📝 <b>Instructions:</b>\n" +
+      "🔺 Write to <b>@li0nchik</b> to process your gold payment\n" +
+      "🔺 Provide Order ID: <code>{orderId}</code>\n" +
+      "🔺 Press «Check» after confirmation",
 
     btn_pay_crypto: "💸 Pay via Crypto Bot",
     btn_check: "🔄 Check Payment",
@@ -417,7 +423,10 @@ export const texts: Record<Lang, Record<string, string>> = {
       "━━━━━━━━━━━━━━━━━━━━\n" +
       "💰 Сума: <b>{amount} Gold</b>\n" +
       "━━━━━━━━━━━━━━━━━━━━\n\n" +
-      "📝 Переведіть голду та натисніть «Перевірити»",
+      "📝 <b>Інструкція:</b>\n" +
+      "🔺 Напишіть <b>@li0nchik</b> щоб провести оплату голдою\n" +
+      "🔺 Вкажіть Order ID: <code>{orderId}</code>\n" +
+      "🔺 Після підтвердження натисніть «Перевірити»",
 
     btn_pay_crypto: "💸 Оплатити через Crypto Bot",
     btn_check: "🔄 Перевірити оплату",

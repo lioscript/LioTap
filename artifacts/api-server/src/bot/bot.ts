@@ -1,4 +1,6 @@
 import TelegramBot from "node-telegram-bot-api";
+import { createReadStream } from "fs";
+import { join } from "path";
 import { logger } from "../lib/logger";
 import type { Lang } from "./i18n";
 import { t } from "./i18n";
@@ -22,6 +24,7 @@ import { createInvoice, checkInvoice } from "./cryptobot";
 
 const BOT_TOKEN     = process.env["TELEGRAM_BOT_TOKEN"] ?? "";
 const ADMIN_GROUP   = Number(process.env["ADMIN_GROUP_ID"] ?? "0");
+const LOGO_PATH     = join(process.cwd(), "logo.png");
 
 if (!BOT_TOKEN)   throw new Error("TELEGRAM_BOT_TOKEN is required");
 if (!ADMIN_GROUP) throw new Error("ADMIN_GROUP_ID is required");
@@ -30,6 +33,9 @@ if (!ADMIN_GROUP) throw new Error("ADMIN_GROUP_ID is required");
 const cryptoPolling = new Map<number, {
   userId: number; purchase: Purchase; chatId: number; msgId: number;
 }>();
+
+// Cache Telegram file_id after first logo upload (avoid re-uploading)
+let logoFileId: string | undefined;
 
 export function startBot(): void {
   const bot = new TelegramBot(BOT_TOKEN, { polling: true });
@@ -63,25 +69,35 @@ export function startBot(): void {
     const user = getUser(userId);
     const lang = user?.lang ?? "ru";
     const name = user?.username ?? "друг";
-    await bot.sendMessage(chatId, t(lang, "main_menu_text", { name }), {
-      parse_mode: "HTML",
-      reply_markup: mainMenuKeyboard(lang),
-    });
+    const caption = t(lang, "main_menu_text", { name });
+    const markup  = mainMenuKeyboard(lang);
+
+    if (logoFileId) {
+      await bot.sendPhoto(chatId, logoFileId, {
+        caption, parse_mode: "HTML", reply_markup: markup,
+      });
+    } else {
+      try {
+        const result = await bot.sendPhoto(chatId, createReadStream(LOGO_PATH), {
+          caption, parse_mode: "HTML", reply_markup: markup,
+        });
+        const photos = result.photo;
+        if (photos && photos.length > 0) {
+          logoFileId = photos[photos.length - 1]!.file_id;
+        }
+      } catch {
+        // Fallback: send without photo if file missing
+        await bot.sendMessage(chatId, caption, {
+          parse_mode: "HTML", reply_markup: markup,
+        });
+      }
+    }
   }
 
   async function editToMainMenu(chatId: number, msgId: number, userId: number): Promise<void> {
-    const user = getUser(userId);
-    const lang = user?.lang ?? "ru";
-    const name = user?.username ?? "друг";
-    try {
-      await bot.editMessageText(t(lang, "main_menu_text", { name }), {
-        chat_id: chatId, message_id: msgId,
-        parse_mode: "HTML",
-        reply_markup: mainMenuKeyboard(lang),
-      });
-    } catch {
-      await sendMainMenu(chatId, userId);
-    }
+    // Can't edit photo→text or text→photo, so delete old + send fresh
+    try { await bot.deleteMessage(chatId, msgId); } catch { /* ignore */ }
+    await sendMainMenu(chatId, userId);
   }
 
   async function editMsg(
