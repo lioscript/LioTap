@@ -2,118 +2,363 @@ export type Lang = "ru" | "en" | "ua";
 
 export const texts: Record<Lang, Record<string, string>> = {
   ru: {
-    welcome_lang: "👋 Привет! Я LioTap — ваш помощник по читам.\n\nВыберите язык:",
-    lang_set: "✅ Язык установлен: Русский",
-    main_menu: "🏠 Главное меню\n\nДобро пожаловать! Выберите действие:",
+    welcome_lang:
+      "👋 Приветствую! Я <b>LioTap</b> — ваш персональный помощник по приобретению читов для мобильных игр.\n\n🌐 Выберите удобный язык:",
+
+    lang_set: "✅ Язык установлен: <b>Русский</b>",
+
+    main_menu:
+      "╔══════════════════╗\n" +
+      "      🏆 <b>LioTap Shop</b> 🏆\n" +
+      "╚══════════════════╝\n\n" +
+      "👋 Добро пожаловать! Здесь вы можете приобрести <b>профессиональные читы</b> для топовых мобильных игр.\n\n" +
+      "🔒 Все продукты <b>100% безопасны</b> и регулярно обновляются.\n" +
+      "⚡ Активация происходит <b>мгновенно</b> после подтверждения оплаты.\n\n" +
+      "📌 Выберите действие ниже 👇",
+
     buy_key: "🛒 Купить ключ",
-    reviews: "⭐️ Отзывы",
+    reviews: "⭐ Отзывы",
     help: "🆘 Помощь",
     my_account: "👤 Мой аккаунт",
-    choose_game: "🎮 Выберите игру:",
-    choose_device: "📱 Выберите ваш девайс:",
-    device_apk: "📱 APK Android - Non root",
+
+    choose_game:
+      "🎮 <b>Выбор игры</b>\n\n" +
+      "Мы поддерживаем следующие игры. Выберите нужную 👇",
+
+    choose_device:
+      "📱 <b>Выбор устройства</b>\n\n" +
+      "Выберите тип вашего устройства для получения совместимого продукта 👇",
+
+    device_apk: "📱 APK Android — Non root",
     device_ipa: "🍎 IPA iOS",
     device_pc: "💻 PC Emulator",
-    desc_apk: "📱 APK Android - БЕЗ прав root\n\n🔥 Поддержка последней версии игры\n\n📲 Этот продукт поддерживает Android устройства версий 8-16\n\n🗽 Без прав root!\n\n✅ Поддерживаются следующие методы входа: Vk, Facebook — выберите любой удобный!\n\nВыберите период подписки ниже ⬇️",
-    desc_ipa: "🍎 iPA iOS — для всех версий iOS\n\n🔥 Поддержка последней версии игры\n\n📲 Этот продукт поддерживает все версии iOS, даже iOS 26!\n\n🗽 Jailbreak или TrollStore не требуется\n\n✅ Поддерживаются следующие методы входа: Vk, Facebook, Google — выберите любой удобный!\n\nВыберите период подписки ниже ⬇️",
-    desc_pc: "💻 Zenin PC External - БЕЗ прав root\n\n🔥 Поддержка последней версии игры\n\n📲 Этот продукт поддерживается следующими эмуляторами:\n🟢 Bluestacks 5 — работает без прав root\n🟡 MSI, LD Player, Nox и другие 64-битные эмуляторы (root)\n\n✅ Поддерживаются следующие методы входа: Vk, Facebook, Google — выберите любой удобный!\n\nВыберите период подписки ниже ⬇️",
-    choose_period: "⏳ Выберите период:",
-    period_7: "7 дней | 7 USDT",
-    period_30: "30 дней | 16 USDT",
-    period_forever: "Навсегда | 30 USDT",
-    choose_payment: "💳 Выберите способ оплаты:",
-    pay_card: "🇺🇦 Ukraine card",
-    pay_crypto: "🤖 Crypto bot",
+
+    desc_apk:
+      "╔══════════════════╗\n" +
+      "   📱 <b>APK Android — Non Root</b>\n" +
+      "╚══════════════════╝\n\n" +
+      "🔥 <b>Поддержка последней версии игры</b>\n" +
+      "📲 Поддерживает Android версий <b>8 — 16</b>\n" +
+      "🗽 <b>Без прав root!</b> Ничего лишнего устанавливать не нужно\n" +
+      "🔑 Методы входа: <b>Vk, Facebook</b> — выберите любой удобный!\n\n" +
+      "⬇️ Выберите период подписки:",
+
+    desc_ipa:
+      "╔══════════════════╗\n" +
+      "    🍎 <b>iPA iOS — все версии</b>\n" +
+      "╚══════════════════╝\n\n" +
+      "🔥 <b>Поддержка последней версии игры</b>\n" +
+      "📲 Поддерживает <b>все версии iOS</b>, включая iOS 26!\n" +
+      "🗽 <b>Jailbreak и TrollStore НЕ требуются!</b>\n" +
+      "🔑 Методы входа: <b>Vk, Facebook, Google</b> — выберите любой удобный!\n\n" +
+      "⬇️ Выберите период подписки:",
+
+    desc_pc:
+      "╔══════════════════╗\n" +
+      "  💻 <b>PC Emulator — Non Root</b>\n" +
+      "╚══════════════════╝\n\n" +
+      "🔥 <b>Поддержка последней версии игры</b>\n" +
+      "📲 Поддерживаемые эмуляторы:\n" +
+      "  🟢 <b>Bluestacks 5</b> — без прав root\n" +
+      "  🟡 <b>MSI, LD Player, Nox</b> и другие 64-бит (root)\n" +
+      "🗽 <b>Без прав root!</b>\n" +
+      "🔑 Методы входа: <b>Vk, Facebook, Google</b> — выберите любой удобный!\n\n" +
+      "⬇️ Выберите период подписки:",
+
+    choose_period: "⏳ <b>Период подписки</b>\n\nВыберите на сколько хотите приобрести ключ 👇",
+    period_7: "📅 7 дней — 7 USDT",
+    period_30: "📆 30 дней — 16 USDT",
+    period_forever: "♾ Навсегда — 30 USDT",
+
+    choose_payment:
+      "💳 <b>Способ оплаты</b>\n\n" +
+      "Выберите удобный способ оплаты 👇",
+
+    pay_card: "🇺🇦 Ukraine card (UAH)",
+    pay_crypto: "🤖 Crypto bot (USDT)",
     pay_gold: "🥇 Голдой",
+
     back: "◀️ Назад",
-    account_info: "👤 Мой аккаунт\n\n👤 Юзернейм: @{username}\n💰 Баланс: 0 UAH\n\n📦 Мои покупки: {purchases}",
+    main_menu_btn: "🏠 Главное меню",
+
+    account_info:
+      "╔══════════════════╗\n" +
+      "      👤 <b>Мой аккаунт</b>\n" +
+      "╚══════════════════╝\n\n" +
+      "🧑 Юзернейм: <b>@{username}</b>\n" +
+      "🛒 Покупок: <b>{purchases}</b>\n\n" +
+      "Управление аккаунтом 👇",
+
     change_lang: "🌐 Сменить язык",
     my_purchases: "📦 Мои покупки",
-    no_purchases: "У вас пока нет покупок.",
-    payment_sent: "✅ Заявка на оплату отправлена администратору. Ожидайте подтверждения.",
-    payment_rejected: "❌ Ваша оплата была отклонена. Обратитесь в поддержку: @li0nchik",
-    payment_approved: "✅ Ваша оплата подтверждена! Ключ будет выдан в ближайшее время.\n\nСпасибо за покупку! 🎉",
+    no_purchases: "📭 У вас пока нет покупок.\n\nНажмите <b>Купить ключ</b> чтобы приобрести первый продукт!",
+
+    payment_sent:
+      "⏳ <b>Заявка отправлена!</b>\n\n" +
+      "Ваш запрос на оплату отправлен администратору.\n" +
+      "Пожалуйста, ожидайте подтверждения.\n\n" +
+      "⏱ Обычно проверка занимает до 15 минут.",
+
+    payment_rejected:
+      "❌ <b>Оплата отклонена</b>\n\n" +
+      "К сожалению, ваша оплата была отклонена.\n" +
+      "Обратитесь за помощью: @li0nchik",
+
+    payment_approved:
+      "✅ <b>Оплата подтверждена!</b>\n\n" +
+      "🎉 Поздравляем с покупкой! Ваш ключ будет выдан в ближайшее время.\n\n" +
+      "💬 По вопросам активации: @li0nchik",
+
     check_payment: "🔄 Проверить оплату",
-    copy_card: "📋 Копировать номер карты",
-    copy_amount: "💰 Копировать сумму",
-    reviews_link: "Канал с отзывами будет добавлен позже.",
-    help_text: "🆘 Помощь\n\nПо всем вопросам обращайтесь к администратору: @li0nchik",
+    copy_card: "📋 Скопировать номер карты",
+    copy_amount: "💰 Скопировать сумму",
+
+    reviews_soon: "⭐ <b>Отзывы</b>\n\nКанал с отзывами скоро будет добавлен. Следите за обновлениями!",
+    help_text:
+      "🆘 <b>Помощь и поддержка</b>\n\n" +
+      "По всем вопросам, проблемам с активацией или оплатой — обращайтесь к нашему администратору:\n\n" +
+      "👤 @li0nchik\n\n" +
+      "⏱ Время ответа: обычно до 1 часа",
   },
+
   en: {
-    welcome_lang: "👋 Hello! I'm LioTap — your cheat assistant.\n\nChoose your language:",
-    lang_set: "✅ Language set: English",
-    main_menu: "🏠 Main Menu\n\nWelcome! Choose an action:",
+    welcome_lang:
+      "👋 Welcome! I'm <b>LioTap</b> — your personal assistant for purchasing mobile game cheats.\n\n🌐 Please select your language:",
+
+    lang_set: "✅ Language set: <b>English</b>",
+
+    main_menu:
+      "╔══════════════════╗\n" +
+      "      🏆 <b>LioTap Shop</b> 🏆\n" +
+      "╚══════════════════╝\n\n" +
+      "👋 Welcome! Here you can purchase <b>professional cheats</b> for top mobile games.\n\n" +
+      "🔒 All products are <b>100% safe</b> and regularly updated.\n" +
+      "⚡ Activation happens <b>instantly</b> after payment confirmation.\n\n" +
+      "📌 Select an action below 👇",
+
     buy_key: "🛒 Buy Key",
-    reviews: "⭐️ Reviews",
+    reviews: "⭐ Reviews",
     help: "🆘 Help",
     my_account: "👤 My Account",
-    choose_game: "🎮 Choose a game:",
-    choose_device: "📱 Choose your device:",
-    device_apk: "📱 APK Android - Non root",
+
+    choose_game:
+      "🎮 <b>Choose Game</b>\n\n" +
+      "We support the following games. Select the one you need 👇",
+
+    choose_device:
+      "📱 <b>Choose Device</b>\n\n" +
+      "Select your device type to get a compatible product 👇",
+
+    device_apk: "📱 APK Android — Non root",
     device_ipa: "🍎 IPA iOS",
     device_pc: "💻 PC Emulator",
-    desc_apk: "📱 APK Android - WITHOUT root rights\n\n🔥 Support for the latest version of the game\n\n📲 This product supports Android devices versions 8-16\n\n🗽 Without root rights!\n\n✅ The following login methods are supported: Vk, Facebook - choose any convenient one!\n\nSelect your subscription period below ⬇️",
-    desc_ipa: "🍎 iPA iOS — for all iOS versions\n\n🔥 Support for the latest version of the game\n\n📲 This product supports all iOS versions, even iOS 26!\n\n🗽 No Jailbreak or TrollStore required\n\n✅ The following login methods are supported: Vk, Facebook, Google - choose any convenient one!\n\nSelect your subscription period below ⬇️",
-    desc_pc: "💻 Zenin PC External - WITHOUT root rights\n\n🔥 Support for the latest version of game\n\n📲 This product is supported by the following emulators:\n🟢 Bluestacks 5 — works without root access\n🟡 MSI, LD Player, Nox, and other 64-bit emulators (root)\n\n✅ The following login methods are supported: Vk, Facebook, Google - choose any convenient one!\n\nSelect your subscription period below ⬇️",
-    choose_period: "⏳ Choose period:",
-    period_7: "7 days | 7 USDT",
-    period_30: "30 days | 16 USDT",
-    period_forever: "Forever | 30 USDT",
-    choose_payment: "💳 Choose payment method:",
-    pay_card: "🇺🇦 Ukraine card",
-    pay_crypto: "🤖 Crypto bot",
+
+    desc_apk:
+      "╔══════════════════╗\n" +
+      "   📱 <b>APK Android — Non Root</b>\n" +
+      "╚══════════════════╝\n\n" +
+      "🔥 <b>Support for the latest game version</b>\n" +
+      "📲 Supports Android versions <b>8 — 16</b>\n" +
+      "🗽 <b>No root rights required!</b>\n" +
+      "🔑 Login methods: <b>Vk, Facebook</b> — choose any!\n\n" +
+      "⬇️ Select your subscription period:",
+
+    desc_ipa:
+      "╔══════════════════╗\n" +
+      "    🍎 <b>iPA iOS — all versions</b>\n" +
+      "╚══════════════════╝\n\n" +
+      "🔥 <b>Support for the latest game version</b>\n" +
+      "📲 Supports <b>all iOS versions</b>, even iOS 26!\n" +
+      "🗽 <b>No Jailbreak or TrollStore required!</b>\n" +
+      "🔑 Login methods: <b>Vk, Facebook, Google</b> — choose any!\n\n" +
+      "⬇️ Select your subscription period:",
+
+    desc_pc:
+      "╔══════════════════╗\n" +
+      "  💻 <b>PC Emulator — Non Root</b>\n" +
+      "╚══════════════════╝\n\n" +
+      "🔥 <b>Support for the latest game version</b>\n" +
+      "📲 Supported emulators:\n" +
+      "  🟢 <b>Bluestacks 5</b> — works without root\n" +
+      "  🟡 <b>MSI, LD Player, Nox</b> and other 64-bit (root)\n" +
+      "🗽 <b>No root rights required!</b>\n" +
+      "🔑 Login methods: <b>Vk, Facebook, Google</b> — choose any!\n\n" +
+      "⬇️ Select your subscription period:",
+
+    choose_period: "⏳ <b>Subscription Period</b>\n\nChoose how long you want to purchase the key for 👇",
+    period_7: "📅 7 days — 7 USDT",
+    period_30: "📆 30 days — 16 USDT",
+    period_forever: "♾ Forever — 30 USDT",
+
+    choose_payment:
+      "💳 <b>Payment Method</b>\n\n" +
+      "Choose your preferred payment method 👇",
+
+    pay_card: "🇺🇦 Ukraine card (UAH)",
+    pay_crypto: "🤖 Crypto bot (USDT)",
     pay_gold: "🥇 Gold",
+
     back: "◀️ Back",
-    account_info: "👤 My Account\n\n👤 Username: @{username}\n💰 Balance: 0 UAH\n\n📦 My purchases: {purchases}",
-    change_lang: "🌐 Change language",
-    my_purchases: "📦 My purchases",
-    no_purchases: "You have no purchases yet.",
-    payment_sent: "✅ Payment request sent to admin. Please wait for confirmation.",
-    payment_rejected: "❌ Your payment was rejected. Contact support: @li0nchik",
-    payment_approved: "✅ Your payment has been confirmed! The key will be issued shortly.\n\nThank you for your purchase! 🎉",
-    check_payment: "🔄 Check payment",
-    copy_card: "📋 Copy card number",
-    copy_amount: "💰 Copy amount",
-    reviews_link: "Reviews channel will be added later.",
-    help_text: "🆘 Help\n\nFor any questions contact admin: @li0nchik",
+    main_menu_btn: "🏠 Main Menu",
+
+    account_info:
+      "╔══════════════════╗\n" +
+      "      👤 <b>My Account</b>\n" +
+      "╚══════════════════╝\n\n" +
+      "🧑 Username: <b>@{username}</b>\n" +
+      "🛒 Purchases: <b>{purchases}</b>\n\n" +
+      "Account management 👇",
+
+    change_lang: "🌐 Change Language",
+    my_purchases: "📦 My Purchases",
+    no_purchases: "📭 You have no purchases yet.\n\nPress <b>Buy Key</b> to get your first product!",
+
+    payment_sent:
+      "⏳ <b>Request sent!</b>\n\n" +
+      "Your payment request has been sent to the administrator.\n" +
+      "Please wait for confirmation.\n\n" +
+      "⏱ Usually verified within 15 minutes.",
+
+    payment_rejected:
+      "❌ <b>Payment Rejected</b>\n\n" +
+      "Unfortunately, your payment was rejected.\n" +
+      "Contact support: @li0nchik",
+
+    payment_approved:
+      "✅ <b>Payment Confirmed!</b>\n\n" +
+      "🎉 Congratulations on your purchase! Your key will be issued shortly.\n\n" +
+      "💬 For activation questions: @li0nchik",
+
+    check_payment: "🔄 Check Payment",
+    copy_card: "📋 Copy Card Number",
+    copy_amount: "💰 Copy Amount",
+
+    reviews_soon: "⭐ <b>Reviews</b>\n\nThe reviews channel will be added soon. Stay tuned!",
+    help_text:
+      "🆘 <b>Help & Support</b>\n\n" +
+      "For any questions, activation problems or payment issues — contact our admin:\n\n" +
+      "👤 @li0nchik\n\n" +
+      "⏱ Response time: usually within 1 hour",
   },
+
   ua: {
-    welcome_lang: "👋 Привіт! Я LioTap — ваш помічник по читах.\n\nОберіть мову:",
-    lang_set: "✅ Мову встановлено: Українська",
-    main_menu: "🏠 Головне меню\n\nЛаскаво просимо! Оберіть дію:",
+    welcome_lang:
+      "👋 Вітаю! Я <b>LioTap</b> — ваш персональний помічник з придбання читів для мобільних ігор.\n\n🌐 Оберіть зручну мову:",
+
+    lang_set: "✅ Мову встановлено: <b>Українська</b>",
+
+    main_menu:
+      "╔══════════════════╗\n" +
+      "      🏆 <b>LioTap Shop</b> 🏆\n" +
+      "╚══════════════════╝\n\n" +
+      "👋 Ласкаво просимо! Тут ви можете придбати <b>професійні чити</b> для топових мобільних ігор.\n\n" +
+      "🔒 Всі продукти <b>100% безпечні</b> та регулярно оновлюються.\n" +
+      "⚡ Активація відбувається <b>миттєво</b> після підтвердження оплати.\n\n" +
+      "📌 Оберіть дію нижче 👇",
+
     buy_key: "🛒 Купити ключ",
-    reviews: "⭐️ Відгуки",
+    reviews: "⭐ Відгуки",
     help: "🆘 Допомога",
     my_account: "👤 Мій акаунт",
-    choose_game: "🎮 Оберіть гру:",
-    choose_device: "📱 Оберіть ваш девайс:",
-    device_apk: "📱 APK Android - Non root",
+
+    choose_game:
+      "🎮 <b>Вибір гри</b>\n\n" +
+      "Ми підтримуємо наступні ігри. Оберіть потрібну 👇",
+
+    choose_device:
+      "📱 <b>Вибір пристрою</b>\n\n" +
+      "Оберіть тип вашого пристрою для отримання сумісного продукту 👇",
+
+    device_apk: "📱 APK Android — Non root",
     device_ipa: "🍎 IPA iOS",
     device_pc: "💻 PC Emulator",
-    desc_apk: "📱 APK Android - БЕЗ прав root\n\n🔥 Підтримка останньої версії гри\n\n📲 Цей продукт підтримує Android пристрої версій 8-16\n\n🗽 Без прав root!\n\n✅ Підтримуються наступні методи входу: Vk, Facebook — оберіть будь-який зручний!\n\nОберіть період підписки нижче ⬇️",
-    desc_ipa: "🍎 iPA iOS — для всіх версій iOS\n\n🔥 Підтримка останньої версії гри\n\n📲 Цей продукт підтримує всі версії iOS, навіть iOS 26!\n\n🗽 Jailbreak або TrollStore не потрібен\n\n✅ Підтримуються наступні методи входу: Vk, Facebook, Google — оберіть будь-який зручний!\n\nОберіть період підписки нижче ⬇️",
-    desc_pc: "💻 Zenin PC External - БЕЗ прав root\n\n🔥 Підтримка останньої версії гри\n\n📲 Цей продукт підтримується наступними емуляторами:\n🟢 Bluestacks 5 — працює без прав root\n🟡 MSI, LD Player, Nox та інші 64-бітні емулятори (root)\n\n✅ Підтримуються наступні методи входу: Vk, Facebook, Google — оберіть будь-який зручний!\n\nОберіть період підписки нижче ⬇️",
-    choose_period: "⏳ Оберіть період:",
-    period_7: "7 днів | 7 USDT",
-    period_30: "30 днів | 16 USDT",
-    period_forever: "Назавжди | 30 USDT",
-    choose_payment: "💳 Оберіть спосіб оплати:",
-    pay_card: "🇺🇦 Ukraine card",
-    pay_crypto: "🤖 Crypto bot",
+
+    desc_apk:
+      "╔══════════════════╗\n" +
+      "   📱 <b>APK Android — Non Root</b>\n" +
+      "╚══════════════════╝\n\n" +
+      "🔥 <b>Підтримка останньої версії гри</b>\n" +
+      "📲 Підтримує Android версій <b>8 — 16</b>\n" +
+      "🗽 <b>Без прав root!</b> Нічого зайвого встановлювати не потрібно\n" +
+      "🔑 Методи входу: <b>Vk, Facebook</b> — обери будь-який!\n\n" +
+      "⬇️ Оберіть період підписки:",
+
+    desc_ipa:
+      "╔══════════════════╗\n" +
+      "    🍎 <b>iPA iOS — всі версії</b>\n" +
+      "╚══════════════════╝\n\n" +
+      "🔥 <b>Підтримка останньої версії гри</b>\n" +
+      "📲 Підтримує <b>всі версії iOS</b>, включно з iOS 26!\n" +
+      "🗽 <b>Jailbreak та TrollStore НЕ потрібні!</b>\n" +
+      "🔑 Методи входу: <b>Vk, Facebook, Google</b> — обери будь-який!\n\n" +
+      "⬇️ Оберіть період підписки:",
+
+    desc_pc:
+      "╔══════════════════╗\n" +
+      "  💻 <b>PC Emulator — Non Root</b>\n" +
+      "╚══════════════════╝\n\n" +
+      "🔥 <b>Підтримка останньої версії гри</b>\n" +
+      "📲 Підтримувані емулятори:\n" +
+      "  🟢 <b>Bluestacks 5</b> — без прав root\n" +
+      "  🟡 <b>MSI, LD Player, Nox</b> та інші 64-біт (root)\n" +
+      "🗽 <b>Без прав root!</b>\n" +
+      "🔑 Методи входу: <b>Vk, Facebook, Google</b> — обери будь-який!\n\n" +
+      "⬇️ Оберіть період підписки:",
+
+    choose_period: "⏳ <b>Термін підписки</b>\n\nОберіть на скільки хочете придбати ключ 👇",
+    period_7: "📅 7 днів — 7 USDT",
+    period_30: "📆 30 днів — 16 USDT",
+    period_forever: "♾ Назавжди — 30 USDT",
+
+    choose_payment:
+      "💳 <b>Спосіб оплати</b>\n\n" +
+      "Оберіть зручний спосіб оплати 👇",
+
+    pay_card: "🇺🇦 Ukraine card (UAH)",
+    pay_crypto: "🤖 Crypto bot (USDT)",
     pay_gold: "🥇 Голдою",
+
     back: "◀️ Назад",
-    account_info: "👤 Мій акаунт\n\n👤 Юзернейм: @{username}\n💰 Баланс: 0 UAH\n\n📦 Мої покупки: {purchases}",
+    main_menu_btn: "🏠 Головне меню",
+
+    account_info:
+      "╔══════════════════╗\n" +
+      "      👤 <b>Мій акаунт</b>\n" +
+      "╚══════════════════╝\n\n" +
+      "🧑 Юзернейм: <b>@{username}</b>\n" +
+      "🛒 Покупок: <b>{purchases}</b>\n\n" +
+      "Управління акаунтом 👇",
+
     change_lang: "🌐 Змінити мову",
     my_purchases: "📦 Мої покупки",
-    no_purchases: "У вас поки немає покупок.",
-    payment_sent: "✅ Заявку на оплату надіслано адміністратору. Очікуйте підтвердження.",
-    payment_rejected: "❌ Вашу оплату було відхилено. Зверніться до підтримки: @li0nchik",
-    payment_approved: "✅ Вашу оплату підтверджено! Ключ буде виданий найближчим часом.\n\nДякуємо за покупку! 🎉",
+    no_purchases: "📭 У вас поки немає покупок.\n\nНатисніть <b>Купити ключ</b> щоб придбати перший продукт!",
+
+    payment_sent:
+      "⏳ <b>Заявку надіслано!</b>\n\n" +
+      "Ваш запит на оплату надіслано адміністратору.\n" +
+      "Будь ласка, очікуйте підтвердження.\n\n" +
+      "⏱ Зазвичай перевірка займає до 15 хвилин.",
+
+    payment_rejected:
+      "❌ <b>Оплату відхилено</b>\n\n" +
+      "На жаль, вашу оплату було відхилено.\n" +
+      "Зверніться за допомогою: @li0nchik",
+
+    payment_approved:
+      "✅ <b>Оплату підтверджено!</b>\n\n" +
+      "🎉 Вітаємо з покупкою! Ваш ключ буде виданий найближчим часом.\n\n" +
+      "💬 З питань активації: @li0nchik",
+
     check_payment: "🔄 Перевірити оплату",
-    copy_card: "📋 Копіювати номер карти",
-    copy_amount: "💰 Копіювати суму",
-    reviews_link: "Канал з відгуками буде додано пізніше.",
-    help_text: "🆘 Допомога\n\nЗ усіх питань звертайтеся до адміністратора: @li0nchik",
+    copy_card: "📋 Скопіювати номер карти",
+    copy_amount: "💰 Скопіювати суму",
+
+    reviews_soon: "⭐ <b>Відгуки</b>\n\nКанал з відгуками незабаром буде додано. Слідкуйте за оновленнями!",
+    help_text:
+      "🆘 <b>Допомога та підтримка</b>\n\n" +
+      "З усіх питань, проблем з активацією або оплатою — звертайтеся до нашого адміністратора:\n\n" +
+      "👤 @li0nchik\n\n" +
+      "⏱ Час відповіді: зазвичай до 1 години",
   },
 };
 

@@ -46,17 +46,17 @@ import {
 } from "./prices";
 
 const BOT_TOKEN = process.env["TELEGRAM_BOT_TOKEN"];
-const ADMIN_GROUP_ID = process.env["ADMIN_GROUP_ID"];
+const ADMIN_GROUP_ID_RAW = process.env["ADMIN_GROUP_ID"];
 
 if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN is required");
-if (!ADMIN_GROUP_ID) throw new Error("ADMIN_GROUP_ID is required");
+if (!ADMIN_GROUP_ID_RAW) throw new Error("ADMIN_GROUP_ID is required");
 
-const ADMIN_GROUP = Number(ADMIN_GROUP_ID);
+const ADMIN_GROUP = Number(ADMIN_GROUP_ID_RAW);
 
 export function startBot(): void {
   const bot = new TelegramBot(BOT_TOKEN!, { polling: true });
 
-  logger.info("Telegram bot started");
+  logger.info({ adminGroup: ADMIN_GROUP }, "Telegram bot started");
 
   function generateOrderId(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();
@@ -66,37 +66,43 @@ export function startBot(): void {
     return Math.random().toString(36).substring(2, 9).toUpperCase();
   }
 
-  function getUserLang(userId: number): Lang {
+  function getLang(userId: number): Lang {
     return getUser(userId)?.lang ?? "ru";
   }
 
-  async function sendMainMenu(bot: TelegramBot, chatId: number, lang: Lang): Promise<void> {
+  async function sendMainMenu(chatId: number, lang: Lang): Promise<void> {
     await bot.sendMessage(chatId, t(lang, "main_menu"), {
+      parse_mode: "HTML",
       reply_markup: mainMenuKeyboard(lang),
     });
   }
 
-  async function notifyAdminNewUser(username: string, referrerUsername?: string): Promise<void> {
-    const msg = referrerUsername
-      ? `👤 Новий користувач бота!\n\n🧑 Юз: @${username}\n🔗 Трафікер: @${referrerUsername}`
-      : `👤 Новий користувач бота!\n\n🧑 Юз: @${username}`;
+  async function notifyAdmin(msg: string, markup?: TelegramBot.InlineKeyboardMarkup): Promise<void> {
     try {
-      await bot.sendMessage(ADMIN_GROUP, msg);
-    } catch (e) {
-      logger.error({ err: e }, "Failed to notify admin of new user");
+      await bot.sendMessage(ADMIN_GROUP, msg, {
+        parse_mode: "HTML",
+        ...(markup ? { reply_markup: markup } : {}),
+      });
+      logger.info({ adminGroup: ADMIN_GROUP }, "Admin notified");
+    } catch (err: unknown) {
+      const error = err as { code?: string; message?: string };
+      logger.error(
+        { err, adminGroup: ADMIN_GROUP, code: error?.code, reason: error?.message },
+        "FAILED to send admin notification — check ADMIN_GROUP_ID and that bot is added to group as admin"
+      );
     }
   }
 
-  // /start handler
+  // ─── /start ──────────────────────────────────────────────────────────────────
   bot.onText(/\/start(.*)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const userId = msg.from!.id;
     const username = msg.from!.username ?? `user${userId}`;
-    const param = match?.[1]?.trim() ?? "";
+    const param = (match?.[1] ?? "").trim();
 
-    const existingUser = getUser(userId);
+    const existing = getUser(userId);
 
-    if (!existingUser) {
+    if (!existing) {
       let referredBy: string | undefined;
 
       if (param.startsWith("ref_")) {
@@ -109,76 +115,67 @@ export function startBot(): void {
       }
 
       createUser(userId, username, referredBy);
-      await notifyAdminNewUser(username, referredBy);
+      logger.info({ userId, username, referredBy }, "New user registered");
+
+      const notifText = referredBy
+        ? `👤 <b>Новий користувач бота!</b>\n\n🧑 Юз: @${username}\n🔗 Прийшов від трафікера: @${referredBy}`
+        : `👤 <b>Новий користувач бота!</b>\n\n🧑 Юз: @${username}`;
+
+      await notifyAdmin(notifText);
     }
 
     const user = getUser(userId)!;
 
-    if (user.step === "lang_select" || !user.step) {
-      await bot.sendMessage(chatId, "👋 Привет! Я <b>LioTap</b> — ваш помощник по читам.\n\nВыберите язык / Choose language / Оберіть мову:", {
-        parse_mode: "HTML",
-        reply_markup: langKeyboard(),
-      });
+    // If user never selected lang — show language picker
+    if (!user.langSelected) {
+      await bot.sendMessage(
+        chatId,
+        "👋 Вітаю / Hello / Привет!\n\nЯ <b>LioTap</b> — ваш помічник з придбання читів для мобільних ігор.\n\n🌐 Оберіть мову / Choose language / Выберите язык:",
+        { parse_mode: "HTML", reply_markup: langKeyboard() }
+      );
     } else {
-      await sendMainMenu(bot, chatId, user.lang);
+      // Already has lang — go to main menu
+      user.step = "main_menu";
+      setUser(userId, user);
+      await sendMainMenu(chatId, user.lang);
     }
   });
 
-  // Text message handler (main menu buttons)
-  bot.on("message", async (msg) => {
-    if (!msg.text || msg.text.startsWith("/")) return;
-
+  // ─── /menu (user shortcut) ────────────────────────────────────────────────────
+  bot.onText(/\/menu/, async (msg) => {
     const chatId = msg.chat.id;
     const userId = msg.from!.id;
+    if (msg.chat.id === ADMIN_GROUP) return; // handled separately
+
     const user = getUser(userId);
+    if (!user || !user.langSelected) return;
 
-    if (!user || user.step === "lang_select") return;
-
-    const lang = user.lang;
-    const text = msg.text;
-
-    if (text === t(lang, "buy_key")) {
-      user.step = "choose_game";
-      setUser(userId, user);
-      await bot.sendMessage(chatId, t(lang, "choose_game"), {
-        reply_markup: gamesKeyboard(lang),
-      });
-    } else if (text === t(lang, "reviews")) {
-      await bot.sendMessage(chatId, t(lang, "reviews_link"), {
-        reply_markup: mainMenuKeyboard(lang),
-      });
-    } else if (text === t(lang, "help")) {
-      await bot.sendMessage(chatId, t(lang, "help_text"), {
-        reply_markup: mainMenuKeyboard(lang),
-      });
-    } else if (text === t(lang, "my_account")) {
-      const purchases = user.purchases.filter((p) => p.status === "approved");
-      const purchaseCount = purchases.length;
-      const info = t(lang, "account_info", {
-        username: user.username,
-        purchases: purchaseCount > 0 ? `${purchaseCount} шт.` : t(lang, "no_purchases"),
-      });
-      await bot.sendMessage(chatId, info, {
-        reply_markup: accountKeyboard(lang),
-      });
-    }
+    user.step = "main_menu";
+    setUser(userId, user);
+    await sendMainMenu(chatId, user.lang);
   });
 
-  // Admin group commands
+  // ─── Admin group commands ────────────────────────────────────────────────────
   bot.on("message", async (msg) => {
-    if (!msg.text || !msg.from) return;
     if (msg.chat.id !== ADMIN_GROUP) return;
+    if (!msg.text || !msg.from) return;
 
-    const text = msg.text;
+    const text = msg.text.trim();
     const userId = msg.from.id;
     const username = msg.from.username ?? `user${userId}`;
 
-    if (text === "/menu") {
+    if (text === "/menu" || text === "/menu@" + (bot as unknown as { options?: { username?: string } }).options?.username) {
       const userCount = getUserCount();
       const earned = getTotalEarned();
       await bot.sendMessage(
         ADMIN_GROUP,
-        `📊 <b>Адмін панель LioTap</b>\n\n👥 Користувачів у боті: <b>${userCount}</b>\n💰 Всього зароблено: <b>${earned} UAH</b>\n\n/menu — ця панель\n/ref — створити реферальне посилання`,
+        `📊 <b>Адмін панель LioTap</b>\n\n` +
+          `👥 Користувачів: <b>${userCount}</b>\n` +
+          `💰 Всього зароблено: <b>${earned} UAH</b>\n\n` +
+          `📌 <b>Команди:</b>\n` +
+          `/menu — ця панель\n` +
+          `/ref — нове реферальне посилання\n` +
+          `/users — список останніх юзерів`,
         { parse_mode: "HTML" }
       );
     } else if (text === "/ref") {
@@ -187,17 +184,19 @@ export function startBot(): void {
 
       if (existingRefs.length > 0) {
         for (const ref of existingRefs) {
-          refMsg += `• Код: <code>${ref.code}</code>\n  Кліки: ${ref.clicks} | Конверсії: ${ref.conversions}\n\n`;
+          refMsg += `• Код: <code>ref_${ref.code}</code>\n  👁 Кліки: ${ref.clicks} | ✅ Конверсії: ${ref.conversions}\n\n`;
         }
       }
 
       const code = generateRefCode();
       createReferral(code, userId, username);
-
       const botInfo = await bot.getMe();
       const link = `https://t.me/${botInfo.username}?start=ref_${code}`;
 
-      refMsg += `✅ <b>Нове посилання створено:</b>\n<a href="${link}">${link}</a>\n\nКод: <code>ref_${code}</code>`;
+      refMsg +=
+        `✅ <b>Нове посилання створено!</b>\n` +
+        `<a href="${link}">${link}</a>\n\n` +
+        `<i>Посилання виглядає як звичайне запрошення в бот.</i>`;
 
       await bot.sendMessage(ADMIN_GROUP, refMsg, {
         parse_mode: "HTML",
@@ -205,107 +204,175 @@ export function startBot(): void {
       });
     } else if (text === "/users") {
       const allUsers = getAllUsers();
-      const lines = allUsers.slice(0, 20).map((u) => `• @${u.username} — мова: ${u.lang}`);
+      if (allUsers.length === 0) {
+        await bot.sendMessage(ADMIN_GROUP, "👥 Ще немає користувачів.");
+        return;
+      }
+      const lines = allUsers
+        .slice(-20)
+        .reverse()
+        .map(
+          (u, i) =>
+            `${i + 1}. @${u.username} (${u.lang.toUpperCase()}) — покупок: ${u.purchases.filter((p) => p.status === "approved").length}`
+        );
       await bot.sendMessage(
         ADMIN_GROUP,
-        `👥 <b>Останні користувачі:</b>\n\n${lines.join("\n")}`,
+        `👥 <b>Останні ${lines.length} користувачів:</b>\n\n${lines.join("\n")}`,
         { parse_mode: "HTML" }
       );
     }
   });
 
-  // Callback query handler
+  // ─── User messages (reply keyboard buttons) ──────────────────────────────────
+  bot.on("message", async (msg) => {
+    if (!msg.text || msg.text.startsWith("/")) return;
+    if (msg.chat.id === ADMIN_GROUP) return;
+
+    const chatId = msg.chat.id;
+    const userId = msg.from!.id;
+    const user = getUser(userId);
+
+    if (!user || !user.langSelected) return;
+
+    const lang = user.lang;
+    const text = msg.text;
+
+    if (text === t(lang, "buy_key")) {
+      user.step = "choose_game";
+      setUser(userId, user);
+      await bot.sendMessage(chatId, t(lang, "choose_game"), {
+        parse_mode: "HTML",
+        reply_markup: gamesKeyboard(lang),
+      });
+    } else if (text === t(lang, "reviews")) {
+      await bot.sendMessage(chatId, t(lang, "reviews_soon"), {
+        parse_mode: "HTML",
+        reply_markup: mainMenuKeyboard(lang),
+      });
+    } else if (text === t(lang, "help")) {
+      await bot.sendMessage(chatId, t(lang, "help_text"), {
+        parse_mode: "HTML",
+        reply_markup: mainMenuKeyboard(lang),
+      });
+    } else if (text === t(lang, "my_account")) {
+      const approved = user.purchases.filter((p) => p.status === "approved").length;
+      await bot.sendMessage(
+        chatId,
+        t(lang, "account_info", {
+          username: user.username,
+          purchases: String(approved),
+        }),
+        {
+          parse_mode: "HTML",
+          reply_markup: accountKeyboard(lang),
+        }
+      );
+    } else if (text === t(lang, "main_menu_btn")) {
+      user.step = "main_menu";
+      setUser(userId, user);
+      await sendMainMenu(chatId, lang);
+    }
+  });
+
+  // ─── Callback queries ────────────────────────────────────────────────────────
   bot.on("callback_query", async (query) => {
     const chatId = query.message!.chat.id;
+    const msgId = query.message!.message_id;
     const userId = query.from.id;
     const data = query.data ?? "";
 
-    let user = getUser(userId);
-
-    // Handle admin group callbacks (approve/reject)
+    // ── Admin group callbacks ────────────────────────────────────────────────
     if (chatId === ADMIN_GROUP) {
       if (data.startsWith("approve_")) {
         const orderId = data.slice(8);
         const pending = getPendingPayment(orderId);
         if (!pending) {
-          await bot.answerCallbackQuery(query.id, { text: "Замовлення не знайдено" });
+          await bot.answerCallbackQuery(query.id, { text: "⚠️ Замовлення не знайдено" });
           return;
         }
-
         const { userId: buyerId, purchase } = pending;
         purchase.status = "approved";
         removePendingPayment(orderId);
 
-        const buyerUser = getUser(buyerId);
-        if (buyerUser) {
-          buyerUser.purchases.push(purchase);
-          setUser(buyerId, buyerUser);
+        const buyer = getUser(buyerId);
+        if (buyer) {
+          buyer.purchases.push(purchase);
+          setUser(buyerId, buyer);
         }
 
         const amountNum = parseFloat(purchase.amount) || 0;
         addEarned(amountNum);
 
-        // Notify buyer
         try {
-          const buyerLang = buyerUser?.lang ?? "ru";
-          await bot.sendMessage(buyerId, t(buyerLang, "payment_approved"));
+          await bot.sendMessage(buyerId, t(buyer?.lang ?? "ru", "payment_approved"), {
+            parse_mode: "HTML",
+          });
         } catch (e) {
           logger.error({ err: e }, "Failed to notify buyer of approval");
         }
 
-        // Notify about referral commission
-        if (buyerUser?.referredBy) {
+        if (buyer?.referredBy) {
           const commission = (amountNum * 0.5).toFixed(2);
-          await bot.sendMessage(
-            ADMIN_GROUP,
-            `✅ <b>Нова успішна оплата!</b>\n\n👤 Покупець: @${buyerUser.username}\n🔗 Трафікер: @${buyerUser.referredBy}\n💰 Сума: ${purchase.amount} ${purchase.currency}\n💸 Доля трафікера (50%): ${commission} ${purchase.currency}`,
-            { parse_mode: "HTML" }
+          await notifyAdmin(
+            `💸 <b>Нова успішна оплата!</b>\n\n` +
+              `👤 Покупець: @${buyer.username}\n` +
+              `🔗 Трафікер: @${buyer.referredBy}\n` +
+              `💰 Сума: <b>${purchase.amount} ${purchase.currency}</b>\n` +
+              `💸 Доля трафікера (50%): <b>${commission} ${purchase.currency}</b>`
           );
-
-          // Update referral conversion
-          const allRefs = getReferralsByCreator(userId);
-          for (const ref of allRefs) {
-            if (ref.creatorUsername === buyerUser.referredBy) {
-              incrementReferralConversion(ref.code);
+          // increment conversion on referral
+          const refs = getReferralsByCreator(0); // we search by creatorUsername instead
+          for (const [, ref] of Object.entries({})) {
+            void ref;
+          }
+          // find by username
+          const allUsersArr = getAllUsers();
+          const trafficerUser = allUsersArr.find((u) => u.username === buyer.referredBy);
+          if (trafficerUser) {
+            const trafficerRefs = getReferralsByCreator(trafficerUser.userId);
+            if (trafficerRefs.length > 0) {
+              incrementReferralConversion(trafficerRefs[0].code);
             }
           }
         }
 
-        await bot.editMessageReplyMarkup({ inline_keyboard: [] }, {
-          chat_id: chatId,
-          message_id: query.message!.message_id,
-        });
+        await bot.editMessageReplyMarkup(
+          { inline_keyboard: [[{ text: "✅ Підтверджено", callback_data: "noop" }]] },
+          { chat_id: chatId, message_id: msgId }
+        );
         await bot.answerCallbackQuery(query.id, { text: "✅ Оплату підтверджено!" });
-
       } else if (data.startsWith("reject_")) {
         const orderId = data.slice(7);
         const pending = getPendingPayment(orderId);
         if (!pending) {
-          await bot.answerCallbackQuery(query.id, { text: "Замовлення не знайдено" });
+          await bot.answerCallbackQuery(query.id, { text: "⚠️ Замовлення не знайдено" });
           return;
         }
-
         const { userId: buyerId } = pending;
         removePendingPayment(orderId);
 
-        const buyerUser = getUser(buyerId);
+        const buyer = getUser(buyerId);
         try {
-          const buyerLang = buyerUser?.lang ?? "ru";
-          await bot.sendMessage(buyerId, t(buyerLang, "payment_rejected"));
+          await bot.sendMessage(buyerId, t(buyer?.lang ?? "ru", "payment_rejected"), {
+            parse_mode: "HTML",
+          });
         } catch (e) {
           logger.error({ err: e }, "Failed to notify buyer of rejection");
         }
 
-        await bot.editMessageReplyMarkup({ inline_keyboard: [] }, {
-          chat_id: chatId,
-          message_id: query.message!.message_id,
-        });
+        await bot.editMessageReplyMarkup(
+          { inline_keyboard: [[{ text: "❌ Відхилено", callback_data: "noop" }]] },
+          { chat_id: chatId, message_id: msgId }
+        );
         await bot.answerCallbackQuery(query.id, { text: "❌ Оплату відхилено" });
+      } else if (data === "noop") {
+        await bot.answerCallbackQuery(query.id);
       }
       return;
     }
 
-    // User not found - ask to start
+    // ── User callbacks ───────────────────────────────────────────────────────
+    let user = getUser(userId);
     if (!user) {
       await bot.answerCallbackQuery(query.id, { text: "Натисніть /start" });
       return;
@@ -313,27 +380,51 @@ export function startBot(): void {
 
     const lang = user.lang;
 
+    async function editText(text: string, markup: TelegramBot.InlineKeyboardMarkup): Promise<void> {
+      try {
+        await bot.editMessageText(text, {
+          chat_id: chatId,
+          message_id: msgId,
+          parse_mode: "HTML",
+          reply_markup: markup,
+        });
+      } catch {
+        await bot.sendMessage(chatId, text, {
+          parse_mode: "HTML",
+          reply_markup: markup,
+        });
+      }
+    }
+
     // Language selection
     if (data.startsWith("lang_")) {
       const newLang = data.slice(5) as Lang;
       user.lang = newLang;
+      user.langSelected = true;
       user.step = "main_menu";
       setUser(userId, user);
+
       await bot.answerCallbackQuery(query.id, { text: t(newLang, "lang_set") });
-      await bot.editMessageReplyMarkup({ inline_keyboard: [] }, {
-        chat_id: chatId,
-        message_id: query.message!.message_id,
-      });
-      await sendMainMenu(bot, chatId, newLang);
+      try {
+        await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: msgId });
+      } catch { /* ignore */ }
+      await sendMainMenu(chatId, newLang);
       return;
     }
 
-    // Change language from account
+    if (data === "noop") {
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+
+    // Change language
     if (data === "change_lang") {
       await bot.answerCallbackQuery(query.id);
-      await bot.sendMessage(chatId, "Виберіть мову / Choose language / Оберіть мову:", {
-        reply_markup: langKeyboard(),
-      });
+      await bot.sendMessage(
+        chatId,
+        "🌐 <b>Зміна мови / Change language / Смена языка:</b>",
+        { parse_mode: "HTML", reply_markup: langKeyboard() }
+      );
       return;
     }
 
@@ -342,25 +433,33 @@ export function startBot(): void {
       await bot.answerCallbackQuery(query.id);
       const approved = user.purchases.filter((p) => p.status === "approved");
       if (approved.length === 0) {
-        await bot.sendMessage(chatId, t(lang, "no_purchases"));
+        await bot.sendMessage(chatId, t(lang, "no_purchases"), { parse_mode: "HTML" });
         return;
       }
       const lines = approved.map(
         (p, i) =>
-          `${i + 1}. ${GAME_LABELS[p.game] ?? p.game} — ${DEVICE_LABELS[lang]?.[p.device] ?? p.device} — ${PERIOD_LABELS[lang]?.[p.period] ?? p.period}`
+          `${i + 1}. <b>${GAME_LABELS[p.game] ?? p.game}</b>\n` +
+          `   📱 ${DEVICE_LABELS["ru"]?.[p.device] ?? p.device}\n` +
+          `   ⏳ ${PERIOD_LABELS[lang]?.[p.period] ?? p.period}\n` +
+          `   💳 ${getPaymentMethodLabel(p.paymentMethod)}`
       );
-      await bot.sendMessage(chatId, `📦 <b>Ваші покупки:</b>\n\n${lines.join("\n")}`, {
-        parse_mode: "HTML",
-      });
+      await bot.sendMessage(
+        chatId,
+        `📦 <b>Ваші покупки:</b>\n\n${lines.join("\n\n")}`,
+        { parse_mode: "HTML" }
+      );
       return;
     }
 
-    // Navigation backs
+    // ── Navigation backs ────────────────────────────────────────────────────
     if (data === "back_main") {
       user.step = "main_menu";
       setUser(userId, user);
       await bot.answerCallbackQuery(query.id);
-      await sendMainMenu(bot, chatId, lang);
+      try {
+        await bot.deleteMessage(chatId, msgId);
+      } catch { /* ignore */ }
+      await sendMainMenu(chatId, lang);
       return;
     }
 
@@ -368,11 +467,7 @@ export function startBot(): void {
       user.step = "choose_game";
       setUser(userId, user);
       await bot.answerCallbackQuery(query.id);
-      await bot.editMessageText(t(lang, "choose_game"), {
-        chat_id: chatId,
-        message_id: query.message!.message_id,
-        reply_markup: gamesKeyboard(lang),
-      });
+      await editText(t(lang, "choose_game"), gamesKeyboard(lang));
       return;
     }
 
@@ -380,11 +475,7 @@ export function startBot(): void {
       user.step = "choose_device";
       setUser(userId, user);
       await bot.answerCallbackQuery(query.id);
-      await bot.editMessageText(t(lang, "choose_device"), {
-        chat_id: chatId,
-        message_id: query.message!.message_id,
-        reply_markup: deviceKeyboard(lang),
-      });
+      await editText(t(lang, "choose_device"), deviceKeyboard(lang));
       return;
     }
 
@@ -392,81 +483,54 @@ export function startBot(): void {
       user.step = "choose_period";
       setUser(userId, user);
       await bot.answerCallbackQuery(query.id);
-      const deviceDesc = t(lang, `desc_${user.device ?? "apk"}`);
-      await bot.editMessageText(deviceDesc, {
-        chat_id: chatId,
-        message_id: query.message!.message_id,
-        reply_markup: periodKeyboard(lang),
-      });
+      const device = user.device ?? "apk";
+      await editText(t(lang, `desc_${device}`), periodKeyboard(lang));
       return;
     }
 
-    // Game selection
+    // ── Game selection ──────────────────────────────────────────────────────
     if (data.startsWith("game_")) {
-      const game = data.slice(5);
-      user.game = game;
+      user.game = data.slice(5);
       user.step = "choose_device";
       setUser(userId, user);
       await bot.answerCallbackQuery(query.id);
-      await bot.editMessageText(t(lang, "choose_device"), {
-        chat_id: chatId,
-        message_id: query.message!.message_id,
-        reply_markup: deviceKeyboard(lang),
-      });
+      await editText(t(lang, "choose_device"), deviceKeyboard(lang));
       return;
     }
 
-    // Device selection
+    // ── Device selection ────────────────────────────────────────────────────
     if (data.startsWith("device_")) {
-      const device = data.slice(7);
-      user.device = device;
+      user.device = data.slice(7);
       user.step = "choose_period";
       setUser(userId, user);
       await bot.answerCallbackQuery(query.id);
-      const deviceDesc = t(lang, `desc_${device}`);
-      await bot.editMessageText(deviceDesc, {
-        chat_id: chatId,
-        message_id: query.message!.message_id,
-        reply_markup: periodKeyboard(lang),
-      });
+      await editText(t(lang, `desc_${user.device}`), periodKeyboard(lang));
       return;
     }
 
-    // Period selection
+    // ── Period selection ────────────────────────────────────────────────────
     if (data.startsWith("period_")) {
-      const period = data.slice(7);
-      user.period = period;
+      user.period = data.slice(7);
       user.step = "choose_payment";
       setUser(userId, user);
       await bot.answerCallbackQuery(query.id);
-      await bot.editMessageText(t(lang, "choose_payment"), {
-        chat_id: chatId,
-        message_id: query.message!.message_id,
-        reply_markup: paymentKeyboard(lang),
-      });
+      await editText(t(lang, "choose_payment"), paymentKeyboard(lang));
       return;
     }
 
-    // Copy helpers
+    // ── Copy helpers ────────────────────────────────────────────────────────
     if (data.startsWith("copy_card_")) {
       const card = data.slice(10);
-      await bot.answerCallbackQuery(query.id, {
-        text: `📋 ${card}`,
-        show_alert: true,
-      });
+      await bot.answerCallbackQuery(query.id, { text: `Номер карти: ${card}`, show_alert: true });
       return;
     }
-
     if (data.startsWith("copy_amount_")) {
       const amount = data.slice(12);
-      await bot.answerCallbackQuery(query.id, {
-        text: `💰 ${amount}`,
-        show_alert: true,
-      });
+      await bot.answerCallbackQuery(query.id, { text: `Сума: ${amount}`, show_alert: true });
       return;
     }
 
-    // Payment method selection
+    // ── Payment method ──────────────────────────────────────────────────────
     if (data.startsWith("pay_")) {
       const method = data.slice(4);
       user.paymentMethod = method;
@@ -480,9 +544,8 @@ export function startBot(): void {
       const orderId = generateOrderId();
 
       const gameName = GAME_LABELS[game] ?? game;
-      const deviceName = DEVICE_LABELS[lang]?.[device] ?? device;
+      const deviceName = DEVICE_LABELS["ru"]?.[device] ?? device;
       const periodName = PERIOD_LABELS[lang]?.[period] ?? period;
-      const payMethod = getPaymentMethodLabel(method);
       const { amount, currency } = getAmountForMethod(method, period);
 
       const purchase: Purchase = {
@@ -502,103 +565,92 @@ export function startBot(): void {
       if (method === "card") {
         const invoiceText =
           `💳 <b>Order information:</b>\n\n` +
-          `🛒 Product: ${gameName} ${deviceName}\n` +
-          `⏳ Duration: ${periodName}\n` +
+          `🛒 Product: <b>${gameName} ${deviceName}</b>\n` +
+          `⏳ Duration: <b>${periodName}</b>\n` +
           `💵 Payment method: 🇺🇦 Ukrainian card\n` +
-          `🆔 Order ID: ${orderId}\n\n` +
+          `🆔 Order ID: <code>${orderId}</code>\n\n` +
           `📌 <b>Payment information:</b>\n` +
           `💳 Card number: <code>${CARD_NUMBER}</code>\n` +
           `💰 Amount to pay: <b>${amount} UAH</b>\n\n` +
           `📝 <b>Instructions:</b>\n` +
-          `🔻Transfer the specified amount to the details, then click "Check payment"\n` +
-          `🔻You have 15 minutes to pay\n` +
-          `🔻Do not write comments on the payment`;
+          `🔻 Transfer the specified amount to the card\n` +
+          `🔻 Then click <b>"Check payment"</b>\n` +
+          `🔻 You have <b>15 minutes</b> to pay\n` +
+          `🔻 Do <b>NOT</b> write comments on the payment`;
 
-        await bot.editMessageText(invoiceText, {
-          chat_id: chatId,
-          message_id: query.message!.message_id,
-          parse_mode: "HTML",
-          reply_markup: cardInvoiceKeyboard(lang, orderId, CARD_NUMBER, `${amount} UAH`),
-        });
+        await editText(invoiceText, cardInvoiceKeyboard(lang, orderId, CARD_NUMBER, `${amount} UAH`));
 
-        // Notify admin group
-        await bot.sendMessage(
-          ADMIN_GROUP,
-          `💳 <b>Новий запит на оплату!</b>\n\n👤 Покупець: @${user.username}\n🎮 Продукт: ${gameName} ${deviceName}\n⏳ Термін: ${periodName}\n💵 Метод: Ukrainian card\n💰 Сума: ${amount} UAH\n🆔 Order ID: ${orderId}`,
-          {
-            parse_mode: "HTML",
-            reply_markup: adminPaymentKeyboard(orderId),
-          }
+        await notifyAdmin(
+          `💳 <b>Новий запит на оплату!</b>\n\n` +
+            `👤 Покупець: @${user.username}\n` +
+            `🎮 Продукт: ${gameName} ${deviceName}\n` +
+            `⏳ Термін: ${periodName}\n` +
+            `💵 Метод: 🇺🇦 Ukrainian card\n` +
+            `💰 Сума: <b>${amount} UAH</b>\n` +
+            `🆔 Order ID: <code>${orderId}</code>`,
+          adminPaymentKeyboard(orderId)
         );
-
       } else if (method === "crypto") {
         const invoiceText =
           `🤖 <b>Order information:</b>\n\n` +
-          `🛒 Product: ${gameName} ${deviceName}\n` +
-          `⏳ Duration: ${periodName}\n` +
-          `💵 Payment method: 🤖 Crypto bot\n` +
-          `🆔 Order ID: ${orderId}\n\n` +
+          `🛒 Product: <b>${gameName} ${deviceName}</b>\n` +
+          `⏳ Duration: <b>${periodName}</b>\n` +
+          `💵 Payment method: 🤖 Crypto bot (USDT)\n` +
+          `🆔 Order ID: <code>${orderId}</code>\n\n` +
           `💰 Amount to pay: <b>${amount} USDT</b>\n\n` +
-          `📝 Після оплати натисніть "Check payment"`;
+          `📝 Після оплати натисніть <b>"Check payment"</b>`;
 
-        await bot.editMessageText(invoiceText, {
-          chat_id: chatId,
-          message_id: query.message!.message_id,
-          parse_mode: "HTML",
-          reply_markup: cryptoInvoiceKeyboard(lang, orderId),
-        });
+        await editText(invoiceText, cryptoInvoiceKeyboard(lang, orderId));
 
-        await bot.sendMessage(
-          ADMIN_GROUP,
-          `🤖 <b>Новий запит на оплату (Crypto)!</b>\n\n👤 Покупець: @${user.username}\n🎮 Продукт: ${gameName} ${deviceName}\n⏳ Термін: ${periodName}\n💵 Метод: Crypto bot\n💰 Сума: ${amount} USDT\n🆔 Order ID: ${orderId}`,
-          {
-            parse_mode: "HTML",
-            reply_markup: adminPaymentKeyboard(orderId),
-          }
+        await notifyAdmin(
+          `🤖 <b>Новий запит на оплату (Crypto)!</b>\n\n` +
+            `👤 Покупець: @${user.username}\n` +
+            `🎮 Продукт: ${gameName} ${deviceName}\n` +
+            `⏳ Термін: ${periodName}\n` +
+            `💵 Метод: 🤖 Crypto bot\n` +
+            `💰 Сума: <b>${amount} USDT</b>\n` +
+            `🆔 Order ID: <code>${orderId}</code>`,
+          adminPaymentKeyboard(orderId)
         );
-
       } else if (method === "gold") {
         const invoiceText =
           `🥇 <b>Order information:</b>\n\n` +
-          `🛒 Product: ${gameName} ${deviceName}\n` +
-          `⏳ Duration: ${periodName}\n` +
+          `🛒 Product: <b>${gameName} ${deviceName}</b>\n` +
+          `⏳ Duration: <b>${periodName}</b>\n` +
           `💵 Payment method: 🥇 Gold\n` +
-          `🆔 Order ID: ${orderId}\n\n` +
+          `🆔 Order ID: <code>${orderId}</code>\n\n` +
           `💰 Amount to pay: <b>${amount} Gold</b>\n\n` +
-          `📝 Після оплати натисніть "Check payment"`;
+          `📝 Після оплати натисніть <b>"Check payment"</b>`;
 
-        await bot.editMessageText(invoiceText, {
-          chat_id: chatId,
-          message_id: query.message!.message_id,
-          parse_mode: "HTML",
-          reply_markup: goldInvoiceKeyboard(lang, orderId),
-        });
+        await editText(invoiceText, goldInvoiceKeyboard(lang, orderId));
 
-        await bot.sendMessage(
-          ADMIN_GROUP,
-          `🥇 <b>Новий запит на оплату (Gold)!</b>\n\n👤 Покупець: @${user.username}\n🎮 Продукт: ${gameName} ${deviceName}\n⏳ Термін: ${periodName}\n💵 Метод: Gold\n💰 Сума: ${amount} Gold\n🆔 Order ID: ${orderId}`,
-          {
-            parse_mode: "HTML",
-            reply_markup: adminPaymentKeyboard(orderId),
-          }
+        await notifyAdmin(
+          `🥇 <b>Новий запит на оплату (Gold)!</b>\n\n` +
+            `👤 Покупець: @${user.username}\n` +
+            `🎮 Продукт: ${gameName} ${deviceName}\n` +
+            `⏳ Термін: ${periodName}\n` +
+            `💵 Метод: 🥇 Gold\n` +
+            `💰 Сума: <b>${amount} Gold</b>\n` +
+            `🆔 Order ID: <code>${orderId}</code>`,
+          adminPaymentKeyboard(orderId)
         );
       }
       return;
     }
 
-    // Check payment
+    // ── Check payment ───────────────────────────────────────────────────────
     if (data.startsWith("check_")) {
       const orderId = data.slice(6);
       const pending = getPendingPayment(orderId);
       if (!pending) {
         await bot.answerCallbackQuery(query.id, {
-          text: "⏳ Очікуємо підтвердження від адміна...",
+          text: "ℹ️ Оплата вже оброблена адміністратором.",
           show_alert: true,
         });
         return;
       }
       await bot.answerCallbackQuery(query.id, {
-        text: "⏳ Ваш чек перевіряється адміністратором. Зачекайте...",
+        text: "⏳ Ваш чек перевіряється адміністратором. Зачекайте будь ласка...",
         show_alert: true,
       });
       return;

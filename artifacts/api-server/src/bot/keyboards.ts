@@ -21,6 +21,7 @@ export function mainMenuKeyboard(lang: Lang): TelegramBot.ReplyKeyboardMarkup {
       [{ text: t(lang, "help") }, { text: t(lang, "my_account") }],
     ],
     resize_keyboard: true,
+    persistent: true,
   };
 }
 
@@ -43,9 +44,9 @@ export function gamesKeyboard(lang: Lang): TelegramBot.InlineKeyboardMarkup {
 export function deviceKeyboard(lang: Lang): TelegramBot.InlineKeyboardMarkup {
   return {
     inline_keyboard: [
-      [{ text: t(lang, "device_apk"), callback_data: "device_apk" }],
-      [{ text: t(lang, "device_ipa"), callback_data: "device_ipa" }],
-      [{ text: t(lang, "device_pc"), callback_data: "device_pc" }],
+      [{ text: "📱 APK Android — Non root", callback_data: "device_apk" }],
+      [{ text: "🍎 IPA iOS", callback_data: "device_ipa" }],
+      [{ text: "💻 PC Emulator", callback_data: "device_pc" }],
       [{ text: t(lang, "back"), callback_data: "back_games" }],
     ],
   };

@@ -17,6 +17,7 @@ export interface UserState {
   userId: number;
   username: string;
   lang: Lang;
+  langSelected: boolean;
   step: string;
   game?: string;
   device?: string;
@@ -53,7 +54,8 @@ export function createUser(userId: number, username: string, referredBy?: string
     userId,
     username: username || `user${userId}`,
     lang: "ru",
-    step: "lang_select",
+    langSelected: false,
+    step: "main_menu",
     purchases: [],
     referredBy,
     joinedAt: new Date(),
