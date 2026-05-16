@@ -1,5 +1,5 @@
 import TelegramBot from "node-telegram-bot-api";
-import { createReadStream } from "fs";
+import { readFileSync } from "fs";
 import { join } from "path";
 import { logger } from "../lib/logger";
 import type { Lang } from "./i18n";
@@ -22,19 +22,35 @@ import {
 } from "./prices";
 import { createInvoice, checkInvoice } from "./cryptobot";
 
-const BOT_TOKEN     = process.env["TELEGRAM_BOT_TOKEN"] ?? "";
-const ADMIN_GROUP   = Number(process.env["ADMIN_GROUP_ID"] ?? "0");
-const LOGO_PATH     = join(process.cwd(), "logo.png");
+const BOT_TOKEN   = process.env["TELEGRAM_BOT_TOKEN"] ?? "";
+const ADMIN_GROUP = Number(process.env["ADMIN_GROUP_ID"] ?? "0");
 
 if (!BOT_TOKEN)   throw new Error("TELEGRAM_BOT_TOKEN is required");
 if (!ADMIN_GROUP) throw new Error("ADMIN_GROUP_ID is required");
+
+// Load logo once at startup into a Buffer (more reliable than ReadStream)
+let logoBuffer: Buffer | undefined;
+try {
+  logoBuffer = readFileSync(join(process.cwd(), "logo.png"));
+  logger.info("Logo loaded successfully");
+} catch {
+  logger.warn("logo.png not found — main menu will show text only");
+}
+
+// Global crash guards — prevent bot from dying on unhandled errors
+process.on("unhandledRejection", (reason) => {
+  logger.error({ reason }, "Unhandled promise rejection");
+});
+process.on("uncaughtException", (err) => {
+  logger.error({ err }, "Uncaught exception");
+});
 
 // crypto invoices being polled: invoiceId → { userId, purchase, msgId, chatId }
 const cryptoPolling = new Map<number, {
   userId: number; purchase: Purchase; chatId: number; msgId: number;
 }>();
 
-// Cache Telegram file_id after first logo upload (avoid re-uploading)
+// Cache Telegram file_id after first logo upload (avoid re-uploading each time)
 let logoFileId: string | undefined;
 
 export function startBot(): void {
@@ -76,21 +92,25 @@ export function startBot(): void {
       await bot.sendPhoto(chatId, logoFileId, {
         caption, parse_mode: "HTML", reply_markup: markup,
       });
-    } else {
+    } else if (logoBuffer) {
       try {
-        const result = await bot.sendPhoto(chatId, createReadStream(LOGO_PATH), {
+        const result = await bot.sendPhoto(chatId, logoBuffer, {
           caption, parse_mode: "HTML", reply_markup: markup,
         });
         const photos = result.photo;
         if (photos && photos.length > 0) {
           logoFileId = photos[photos.length - 1]!.file_id;
         }
-      } catch {
-        // Fallback: send without photo if file missing
+      } catch (err) {
+        logger.error({ err }, "sendPhoto failed, falling back to text");
         await bot.sendMessage(chatId, caption, {
           parse_mode: "HTML", reply_markup: markup,
         });
       }
+    } else {
+      await bot.sendMessage(chatId, caption, {
+        parse_mode: "HTML", reply_markup: markup,
+      });
     }
   }
 
