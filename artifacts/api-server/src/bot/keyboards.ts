@@ -103,11 +103,13 @@ export function cardInvoiceKeyboard(
 
 export function cryptoInvoiceKeyboard(
   lang: Lang,
-  payUrl: string
+  payUrl: string,
+  orderId: string,
 ): TelegramBot.InlineKeyboardMarkup {
   return {
     inline_keyboard: [
       [{ text: t(lang, "btn_pay_crypto"), url: payUrl }],
+      [{ text: t(lang, "back"), callback_data: `cancel_crypto_${orderId}` }],
     ],
   };
 }

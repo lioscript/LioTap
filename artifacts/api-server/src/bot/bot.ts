@@ -450,6 +450,28 @@ export function startBot(): void {
       return;
     }
 
+    // ── Cancel crypto (back from crypto invoice) ─────────────────────────────
+    if (data.startsWith("cancel_crypto_")) {
+      const orderId = data.slice("cancel_crypto_".length);
+      // Stop polling for this invoice
+      for (const [invoiceId, info] of cryptoPolling.entries()) {
+        if (info.purchase.id === orderId) {
+          cryptoPolling.delete(invoiceId);
+          break;
+        }
+      }
+      removePendingPayment(orderId);
+      user.step = "choose_payment";
+      setUser(userId, user);
+      // Delete the crypto invoice message and send fresh payment selection
+      try { await bot.deleteMessage(chatId, msgId); } catch { /* ignore */ }
+      await bot.sendMessage(chatId, t(lang, "choose_payment"), {
+        parse_mode: "HTML",
+        reply_markup: paymentKeyboard(lang),
+      });
+      return;
+    }
+
     // ── Game selection ──────────────────────────────────────────────────────────
     if (data.startsWith("game_")) {
       user.game = data.slice(5);
@@ -545,7 +567,7 @@ export function startBot(): void {
 
           const sentMsg = await bot.sendMessage(chatId, invoiceText, {
             parse_mode: "HTML",
-            reply_markup: cryptoInvoiceKeyboard(lang, invoice.payUrl),
+            reply_markup: cryptoInvoiceKeyboard(lang, invoice.payUrl, orderId),
           });
 
           // Start polling for this invoice
