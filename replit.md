@@ -1,45 +1,58 @@
-# [Project name]
+# LioTap Cheat Bot
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Telegram бот для продажу читів до мобільних ігор. Підтримує 3 мови, кілька способів оплати та систему реферальних посилань.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- `pnpm --filter @workspace/api-server run dev` — запустити сервер + бот (port 5000)
+- `pnpm run typecheck` — перевірка типів
+- `pnpm run build` — збірка всіх пакетів
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
 - API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
+- Telegram: node-telegram-bot-api (polling)
 - Build: esbuild (CJS bundle)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/api-server/src/bot/bot.ts` — головний файл бота, обробка всіх команд і колбеків
+- `artifacts/api-server/src/bot/i18n.ts` — переклади (ru/en/ua)
+- `artifacts/api-server/src/bot/keyboards.ts` — клавіатури InlineKeyboard та ReplyKeyboard
+- `artifacts/api-server/src/bot/store.ts` — in-memory сховище користувачів, покупок, рефералів
+- `artifacts/api-server/src/bot/prices.ts` — ціни, карта, назви продуктів
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- In-memory store (Map) — дані зберігаються під час роботи процесу; перезапуск скидає стан. Для продакшну варто підключити PostgreSQL.
+- Polling mode — бот використовує polling, не webhook. Простіше для dev-середовища.
+- Реферальні посилання виглядають як звичайні `/start ref_XXXXXX` — не розкривають, що це реферал.
+- 50% комісія трафікеру рахується автоматично після підтвердження оплати адміном.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Вибір мови при старті (RU/EN/UA)
+- Купівля ключів: 4 гри × 3 девайси × 3 терміни × 3 способи оплати
+- Картка Ukraine: рахунок з номером карти 5168752027679524
+- Crypto bot: оплата в USDT
+- Голда: внутрішня валюта гри
+- Адмін група: підтвердження/відхилення платежів, /menu, /ref, /users
+- Реферальна система з відстеженням кліків та конверсій
 
-## User preferences
+## Secrets required
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- `TELEGRAM_BOT_TOKEN` — токен бота від @BotFather
+- `ADMIN_GROUP_ID` — Chat ID адмін групи (від'ємне число)
+
+## Adm group commands
+
+- `/menu` — статистика (кількість юзерів, зароблено)
+- `/ref` — створити реферальне посилання
+- `/users` — список останніх 20 користувачів
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Bot токен та ADMIN_GROUP_ID зберігаються в Replit Secrets
+- ADMIN_GROUP_ID має бути від'ємним числом (групи мають від'ємні ID)
+- Після перезапуску сервера всі pending payments скидаються — юзери мають починати замовлення знову
