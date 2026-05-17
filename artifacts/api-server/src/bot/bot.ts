@@ -742,12 +742,6 @@ export function startBot(): void {
           cardInvoiceKeyboard(lang, orderId, CARD_NUMBER, amount),
         );
 
-        await notifyAdmin(
-          `💳 <b>Нова оплата (Картка)</b>\n👤 @${user.username}\n🎮 ${productStr}\n` +
-          `⏳ ${periodName}\n💰 <b>${amount} UAH</b>\n🆔 <code>${orderId}</code>`,
-          adminPaymentKeyboard(orderId),
-        );
-
       } else if (method === "crypto") {
         const amount   = String(PRICES_USDT[period] ?? 0);
         const purchase: Purchase = {
@@ -814,12 +808,6 @@ export function startBot(): void {
           product: productStr, period: periodName, orderId, amount,
         });
         await editMsg(chatId, msgId, invoiceText, goldInvoiceKeyboard(lang, orderId));
-
-        await notifyAdmin(
-          `🥇 <b>Нова оплата (Gold)</b>\n👤 @${user.username}\n🎮 ${productStr}\n` +
-          `⏳ ${periodName}\n💰 <b>${amount} Gold</b>\n🆔 <code>${orderId}</code>`,
-          adminPaymentKeyboard(orderId),
-        );
       }
       return;
     }
@@ -834,6 +822,27 @@ export function startBot(): void {
         });
         return;
       }
+
+      const { purchase } = pending;
+      const gameName   = GAME_LABELS[purchase.game]            ?? purchase.game;
+      const deviceName = DEVICE_LABELS["ru"]?.[purchase.device] ?? purchase.device;
+      const periodName = PERIOD_LABELS["ru"]?.[purchase.period]  ?? purchase.period;
+      const productStr = `${gameName} ${deviceName}`;
+
+      const methodEmoji = purchase.paymentMethod === "card" ? "💳" : "🥇";
+      const methodLabel = purchase.paymentMethod === "card"
+        ? `Картка (UAH)` : `Gold`;
+
+      await notifyAdmin(
+        `${methodEmoji} <b>Перевірка оплати</b>\n` +
+        `👤 @${user.username}\n` +
+        `🎮 ${productStr}\n` +
+        `⏳ ${periodName}\n` +
+        `💰 <b>${purchase.amount} ${purchase.currency}</b> — ${methodLabel}\n` +
+        `🆔 <code>${orderId}</code>`,
+        adminPaymentKeyboard(orderId),
+      );
+
       await bot.answerCallbackQuery(query.id, {
         text: t(lang, "payment_checking"), show_alert: true,
       });
