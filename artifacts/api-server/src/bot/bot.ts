@@ -359,7 +359,7 @@ export function startBot(): void {
         `📊 <b>Адмін панель LioTap</b>\n\n` +
         `👥 Користувачів: <b>${getUserCount()}</b>\n` +
         `💰 Зароблено: <b>${getTotalEarned()} UAH</b>\n\n` +
-        `/menu — панель\n/ref — реф. посилання\n/users — список юзерів`,
+        `/menu — панель\n/ref — реф. посилання\n/mystats — моя статистика\n/users — список юзерів`,
         { parse_mode: "HTML" },
       );
     } else if (text === "/ref") {
@@ -379,6 +379,48 @@ export function startBot(): void {
       const header = isNew ? "🔗 <b>Ваше реф. посилання створено:</b>" : "🔗 <b>Ваше реф. посилання:</b>";
       await bot.sendMessage(ADMIN_GROUP,
         `${header}\n<a href="${link}">${link}</a>\n\n📊 Статистика: ${statsLine}`,
+        { parse_mode: "HTML", disable_web_page_preview: true },
+      );
+    } else if (text === "/mystats") {
+      const myRefs = getReferralsByCreator(userId);
+      if (!myRefs.length) {
+        await bot.sendMessage(ADMIN_GROUP,
+          `📊 <b>Ваша статистика</b>\n\nУ вас ще немає реф. посилання.\nСтворіть його командою /ref`,
+          { parse_mode: "HTML" },
+        );
+        return;
+      }
+      const ref = myRefs[0];
+      const botInfo = await bot.getMe();
+      const link = `https://t.me/${botInfo.username}?start=ref_${ref.code}`;
+
+      // Count users referred by this trafficker and their approved purchases
+      const allUsers = getAllUsers();
+      const referredUsers = allUsers.filter(u => u.username === uname
+        ? false
+        : u.referredBy === uname);
+      const totalApproved = referredUsers.reduce(
+        (sum, u) => sum + u.purchases.filter(p => p.status === "approved").length, 0,
+      );
+
+      // Estimate earned commission (50% of USDT purchases)
+      let earnedUSDT = 0;
+      for (const u of referredUsers) {
+        for (const p of u.purchases.filter(pp => pp.status === "approved")) {
+          if (p.currency === "USDT") {
+            earnedUSDT += parseFloat(p.amount) * 0.5;
+          }
+        }
+      }
+
+      await bot.sendMessage(ADMIN_GROUP,
+        `📊 <b>Ваша статистика, @${uname}</b>\n\n` +
+        `🔗 Посилання:\n<a href="${link}">${link}</a>\n\n` +
+        `👆 Кліки: <b>${ref.clicks}</b>\n` +
+        `✅ Конверсії: <b>${ref.conversions}</b>\n` +
+        `👥 Залучено юзерів: <b>${referredUsers.length}</b>\n` +
+        `🛒 Підтверджених покупок: <b>${totalApproved}</b>\n` +
+        `💸 Ваша комісія (50%): <b>${earnedUSDT.toFixed(2)} USDT</b>`,
         { parse_mode: "HTML", disable_web_page_preview: true },
       );
     } else if (text === "/users") {
