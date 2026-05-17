@@ -85,42 +85,25 @@ export function startBot(): void {
     const user = getUser(userId);
     const lang = user?.lang ?? "ru";
     const name = user?.username ?? "друг";
-    const caption = t(lang, "main_menu_text", { name });
-    const markup  = mainMenuKeyboard(lang);
-
-    if (logoFileId) {
-      await bot.sendPhoto(chatId, logoFileId, {
-        caption, parse_mode: "HTML", reply_markup: markup,
-      });
-    } else if (logoBuffer) {
-      try {
-        const result = await bot.sendPhoto(
-          chatId,
-          logoBuffer,
-          { caption, parse_mode: "HTML", reply_markup: markup },
-          { filename: "logo.png", contentType: "image/png" },
-        );
-        const photos = result.photo;
-        if (photos && photos.length > 0) {
-          logoFileId = photos[photos.length - 1]!.file_id;
-        }
-      } catch (err) {
-        logger.error({ err }, "sendPhoto failed, falling back to text");
-        await bot.sendMessage(chatId, caption, {
-          parse_mode: "HTML", reply_markup: markup,
-        });
-      }
-    } else {
-      await bot.sendMessage(chatId, caption, {
-        parse_mode: "HTML", reply_markup: markup,
-      });
-    }
+    await bot.sendMessage(chatId, t(lang, "main_menu_text", { name }), {
+      parse_mode: "HTML",
+      reply_markup: mainMenuKeyboard(lang),
+    });
   }
 
   async function editToMainMenu(chatId: number, msgId: number, userId: number): Promise<void> {
-    // Can't edit photo→text or text→photo, so delete old + send fresh
-    try { await bot.deleteMessage(chatId, msgId); } catch { /* ignore */ }
-    await sendMainMenu(chatId, userId);
+    const user = getUser(userId);
+    const lang = user?.lang ?? "ru";
+    const name = user?.username ?? "друг";
+    try {
+      await bot.editMessageText(t(lang, "main_menu_text", { name }), {
+        chat_id: chatId, message_id: msgId,
+        parse_mode: "HTML",
+        reply_markup: mainMenuKeyboard(lang),
+      });
+    } catch {
+      await sendMainMenu(chatId, userId);
+    }
   }
 
   async function editMsg(
