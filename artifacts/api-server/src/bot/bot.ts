@@ -94,9 +94,12 @@ export function startBot(): void {
       });
     } else if (logoBuffer) {
       try {
-        const result = await bot.sendPhoto(chatId, logoBuffer, {
-          caption, parse_mode: "HTML", reply_markup: markup,
-        });
+        const result = await bot.sendPhoto(
+          chatId,
+          logoBuffer,
+          { caption, parse_mode: "HTML", reply_markup: markup },
+          { filename: "logo.png", contentType: "image/png" },
+        );
         const photos = result.photo;
         if (photos && photos.length > 0) {
           logoFileId = photos[photos.length - 1]!.file_id;
