@@ -39,6 +39,51 @@ process.on("uncaughtException", (err) => {
 const LOGO_PATH       = join(process.cwd(), "logo.png");
 const LOGO_ID_CACHE   = join(process.cwd(), "data", "logo_file_id.txt");
 
+const GAME_IMAGES: Record<string, string> = {
+  standoff2:  join(process.cwd(), "games", "standoff.jpeg"),
+  brawlstars: join(process.cwd(), "games", "brawl.jpeg"),
+  pubgmobile: join(process.cwd(), "games", "pubg.jpeg"),
+  fcmobile:   join(process.cwd(), "games", "fifa.jpeg"),
+};
+const GAME_IDS_CACHE = join(process.cwd(), "data", "game_file_ids.json");
+const gameFileIds: Record<string, string> = {};
+
+function loadCachedGameFileIds(): void {
+  try {
+    if (existsSync(GAME_IDS_CACHE)) {
+      const parsed = JSON.parse(readFileSync(GAME_IDS_CACHE, "utf-8")) as Record<string, string>;
+      Object.assign(gameFileIds, parsed);
+      logger.info({ gameFileIds }, "Game file_ids loaded from cache");
+    }
+  } catch { /* ignore */ }
+}
+
+async function uploadGamePhotosIfNeeded(bot: TelegramBot, adminGroup: number): Promise<void> {
+  let changed = false;
+  for (const [game, imgPath] of Object.entries(GAME_IMAGES)) {
+    if (gameFileIds[game]) continue;
+    if (!existsSync(imgPath)) { logger.warn({ game }, "Game image not found"); continue; }
+    try {
+      const result = await bot.sendPhoto(adminGroup, imgPath, { caption: `📸 ${game}` });
+      const best = result.photo?.[result.photo.length - 1];
+      if (best?.file_id) {
+        gameFileIds[game] = best.file_id;
+        changed = true;
+        logger.info({ game, fileId: best.file_id }, "Game photo cached");
+      }
+      try { await bot.deleteMessage(adminGroup, result.message_id); } catch { /* ignore */ }
+    } catch (err) {
+      logger.error({ err, game }, "Game photo upload failed");
+    }
+  }
+  if (changed) {
+    mkdirSync(join(process.cwd(), "data"), { recursive: true });
+    writeFileSync(GAME_IDS_CACHE, JSON.stringify(gameFileIds), "utf-8");
+  }
+}
+
+loadCachedGameFileIds();
+
 // crypto invoices being polled
 const cryptoPolling = new Map<number, {
   userId: number; purchase: Purchase; chatId: number; msgId: number;
@@ -80,8 +125,9 @@ export function startBot(): void {
   const bot = new TelegramBot(BOT_TOKEN, { polling: true });
   logger.info({ adminGroup: ADMIN_GROUP }, "Telegram bot started");
 
-  // Upload logo on startup (only if not cached yet)
+  // Upload logo and game photos on startup (only if not cached yet)
   void uploadLogoIfNeeded(bot, ADMIN_GROUP);
+  void uploadGamePhotosIfNeeded(bot, ADMIN_GROUP);
 
   // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -510,7 +556,22 @@ export function startBot(): void {
       user.game = data.slice(5);
       user.step = "choose_device";
       setUser(userId, user);
-      await editMsg(chatId, msgId, t(lang, "choose_device"), deviceKeyboard(lang));
+      const game    = user.game;
+      const desc    = t(lang, `game_desc_${game}`);
+      const kbd     = deviceKeyboard(lang);
+      const fileId  = gameFileIds[game];
+      if (fileId) {
+        try {
+          try { await bot.deleteMessage(chatId, msgId); } catch { /* ignore */ }
+          await bot.sendPhoto(chatId, fileId, {
+            caption: desc, parse_mode: "HTML", reply_markup: kbd,
+          });
+          return;
+        } catch {
+          delete gameFileIds[game]; // file_id expired — fall back
+        }
+      }
+      await editMsg(chatId, msgId, desc, kbd);
       return;
     }
 

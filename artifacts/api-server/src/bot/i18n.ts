@@ -32,6 +32,30 @@ export const texts: Record<Lang, Record<string, string>> = {
       "🎮 <b>Выбор игры</b>\n\n" +
       "Выберите игру, для которой хотите приобрести чит:",
 
+    game_desc_standoff2:
+      "🎯 <b>Standoff 2 — LioTap</b>\n\n" +
+      "💎 Огромный набор функций: ESP, аимбот, стрельба сквозь стены, трассировка, ники игроков, отображение здоровья и десятки других настроек.\n\n" +
+      "🍎 <b>Мы единственные, у кого чит полноценно работает на iPhone</b> — поддержка всех версий iOS без джейлбрейка.\n\n" +
+      "📱 Выбери устройство:",
+
+    game_desc_brawlstars:
+      "⭐ <b>Brawl Stars — LioTap</b>\n\n" +
+      "💥 <b>Мы единственные на рынке, у кого работает функциональный краш серверов</b> — вешай игру на всех в комнате нажатием одной кнопки.\n\n" +
+      "🔧 ESP, аимбот, авто-прицеливание — всё что нужно для доминирования.\n\n" +
+      "📱 Выбери устройство:",
+
+    game_desc_pubgmobile:
+      "🔫 <b>PUBG Mobile — LioTap</b>\n\n" +
+      "🎯 Огромный выбор функций: ESP, аимбот, авто-топ, спидхак, нет отдачи, стрельба сквозь стены и многое другое.\n\n" +
+      "🛡 <b>Лучший антибан на рынке</b> — наш чит не детектируется античитами PUBG Mobile.\n\n" +
+      "📱 Выбери устройство:",
+
+    game_desc_fcmobile:
+      "⚽ <b>FC Mobile — LioTap</b>\n\n" +
+      "💰 <b>Накрутка кристаллов и монет</b> — пополняй баланс в игре без лишних трат.\n\n" +
+      "🏆 Полный контроль над ресурсами твоего аккаунта.\n\n" +
+      "📱 Выбери устройство:",
+
     choose_device:
       "📱 <b>Выбор устройства</b>\n\n" +
       "Выберите тип вашего устройства:",
@@ -183,6 +207,30 @@ export const texts: Record<Lang, Record<string, string>> = {
     choose_game:
       "🎮 <b>Choose Game</b>\n\nSelect the game you want a cheat for:",
 
+    game_desc_standoff2:
+      "🎯 <b>Standoff 2 — LioTap</b>\n\n" +
+      "💎 Massive feature set: ESP, aimbot, wall penetration, tracers, player nicknames, health bars and dozens of custom settings.\n\n" +
+      "🍎 <b>We are the ONLY ones whose cheat fully works on iPhone</b> — all iOS versions, no jailbreak required.\n\n" +
+      "📱 Choose your device:",
+
+    game_desc_brawlstars:
+      "⭐ <b>Brawl Stars — LioTap</b>\n\n" +
+      "💥 <b>We are the ONLY ones on the market with a working server crash function</b> — crash the entire lobby with one button press.\n\n" +
+      "🔧 ESP, aimbot, auto-aim — everything you need to dominate.\n\n" +
+      "📱 Choose your device:",
+
+    game_desc_pubgmobile:
+      "🔫 <b>PUBG Mobile — LioTap</b>\n\n" +
+      "🎯 Huge feature selection: ESP, aimbot, auto-top, speedhack, no recoil, wallhack and much more.\n\n" +
+      "🛡 <b>Best anti-ban on the market</b> — our cheat is fully undetected by PUBG Mobile anti-cheat.\n\n" +
+      "📱 Choose your device:",
+
+    game_desc_fcmobile:
+      "⚽ <b>FC Mobile — LioTap</b>\n\n" +
+      "💰 <b>Crystal and coin boosting</b> — top up your in-game balance without extra spending.\n\n" +
+      "🏆 Full control over your account resources.\n\n" +
+      "📱 Choose your device:",
+
     choose_device:
       "📱 <b>Choose Device</b>\n\nSelect your device type:",
 
@@ -332,6 +380,30 @@ export const texts: Record<Lang, Record<string, string>> = {
 
     choose_game:
       "🎮 <b>Вибір гри</b>\n\nОберіть гру, для якої хочете придбати чит:",
+
+    game_desc_standoff2:
+      "🎯 <b>Standoff 2 — LioTap</b>\n\n" +
+      "💎 Величезний набір функцій: ESP, аімбот, стрільба крізь стіни, трасери, ніки гравців, відображення здоров'я та десятки інших налаштувань.\n\n" +
+      "🍎 <b>Ми єдині, у кого чіт повноцінно працює на iPhone</b> — всі версії iOS, без джейлбрейку.\n\n" +
+      "📱 Вибери пристрій:",
+
+    game_desc_brawlstars:
+      "⭐ <b>Brawl Stars — LioTap</b>\n\n" +
+      "💥 <b>Ми єдині на ринку, у кого є функціональний краш серверів</b> — вішай гру на всіх у кімнаті одним натисканням кнопки.\n\n" +
+      "🔧 ESP, аімбот, авто-прицілювання — всі інструменти для домінування.\n\n" +
+      "📱 Вибери пристрій:",
+
+    game_desc_pubgmobile:
+      "🔫 <b>PUBG Mobile — LioTap</b>\n\n" +
+      "🎯 Великий вибір функцій: ESP, аімбот, авто-топ, спідхак, без віддачі, крізь стіни та багато іншого.\n\n" +
+      "🛡 <b>Найкращий антибан на ринку</b> — наш чіт не визначається античитами PUBG Mobile.\n\n" +
+      "📱 Вибери пристрій:",
+
+    game_desc_fcmobile:
+      "⚽ <b>FC Mobile — LioTap</b>\n\n" +
+      "💰 <b>Накрутка кристалів та монет</b> — поповнення балансу в грі без зайвих витрат.\n\n" +
+      "🏆 Повний контроль над ресурсами твого акаунту.\n\n" +
+      "📱 Вибери пристрій:",
 
     choose_device:
       "📱 <b>Вибір пристрою</b>\n\nОберіть тип вашого пристрою:",
