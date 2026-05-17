@@ -22,8 +22,9 @@ import {
 } from "./prices";
 import { createInvoice, checkInvoice } from "./cryptobot";
 
-const BOT_TOKEN   = process.env["TELEGRAM_BOT_TOKEN"] ?? "";
-const ADMIN_GROUP = Number(process.env["ADMIN_GROUP_ID"] ?? "0");
+const BOT_TOKEN        = process.env["TELEGRAM_BOT_TOKEN"] ?? "";
+const ADMIN_GROUP      = Number(process.env["ADMIN_GROUP_ID"] ?? "0");
+const CHANNEL_USERNAME = "@liotap";
 
 if (!BOT_TOKEN)   throw new Error("TELEGRAM_BOT_TOKEN is required");
 if (!ADMIN_GROUP) throw new Error("ADMIN_GROUP_ID is required");
@@ -136,6 +137,36 @@ export function startBot(): void {
   }
   function genRefCode(): string {
     return Math.random().toString(36).substring(2, 9).toUpperCase();
+  }
+
+  async function isSubscribed(userId: number): Promise<boolean> {
+    try {
+      const member = await bot.getChatMember(CHANNEL_USERNAME, userId);
+      return ["member", "administrator", "creator"].includes(member.status);
+    } catch {
+      return false;
+    }
+  }
+
+  function subscribeKeyboard(lang: string): TelegramBot.InlineKeyboardMarkup {
+    return {
+      inline_keyboard: [
+        [{ text: t(lang as Lang, "btn_subscribe"), url: "https://t.me/liotap" }],
+        [{ text: t(lang as Lang, "btn_check_sub"), callback_data: "check_sub" }],
+      ],
+    };
+  }
+
+  async function requireSubscription(chatId: number, userId: number, lang: string): Promise<boolean> {
+    const subscribed = await isSubscribed(userId);
+    if (!subscribed) {
+      await bot.sendMessage(chatId, t(lang as Lang, "subscribe_required"), {
+        parse_mode: "HTML",
+        reply_markup: subscribeKeyboard(lang),
+      });
+      return false;
+    }
+    return true;
   }
 
   async function notifyAdmin(
@@ -299,6 +330,10 @@ export function startBot(): void {
       await notifyAdmin(notifText);
     }
 
+    const lang = existing.lang ?? "ru";
+
+    if (!await requireSubscription(chatId, userId, lang)) return;
+
     if (!existing.langSelected) {
       await bot.sendMessage(chatId, t("ru", "welcome_lang"), {
         parse_mode: "HTML",
@@ -328,18 +363,22 @@ export function startBot(): void {
         { parse_mode: "HTML" },
       );
     } else if (text === "/ref") {
-      const code = genRefCode();
-      createReferral(code, userId, uname);
       const botInfo = await bot.getMe();
-      const link = `https://t.me/${botInfo.username}?start=ref_${code}`;
-      const existing = getReferralsByCreator(userId);
-      let refsText = "";
-      if (existing.length > 1) {
-        refsText = `\n\n📋 <b>Всі ваші посилання:</b>\n` +
-          existing.map(r => `• ref_${r.code} — кліки: ${r.clicks} / конверсії: ${r.conversions}`).join("\n");
+      const existingRefs = getReferralsByCreator(userId);
+      let ref: ReturnType<typeof createReferral>;
+      let isNew = false;
+      if (existingRefs.length > 0) {
+        ref = existingRefs[0];
+      } else {
+        const code = genRefCode();
+        ref = createReferral(code, userId, uname);
+        isNew = true;
       }
+      const link = `https://t.me/${botInfo.username}?start=ref_${ref.code}`;
+      const statsLine = `кліки: ${ref.clicks} / конверсії: ${ref.conversions}`;
+      const header = isNew ? "🔗 <b>Ваше реф. посилання створено:</b>" : "🔗 <b>Ваше реф. посилання:</b>";
       await bot.sendMessage(ADMIN_GROUP,
-        `🔗 <b>Нове реф. посилання:</b>\n<a href="${link}">${link}</a>${refsText}`,
+        `${header}\n<a href="${link}">${link}</a>\n\n📊 Статистика: ${statsLine}`,
         { parse_mode: "HTML", disable_web_page_preview: true },
       );
     } else if (text === "/users") {
@@ -429,6 +468,30 @@ export function startBot(): void {
     const user = getUser(userId);
     if (!user) { await bot.answerCallbackQuery(query.id, { text: "Натисніть /start" }); return; }
     const lang = user.lang;
+
+    // ── Check subscription callback ─────────────────────────────────────────────
+    if (data === "check_sub") {
+      const subscribed = await isSubscribed(userId);
+      if (!subscribed) {
+        await bot.answerCallbackQuery(query.id, {
+          text: t(lang, "not_subscribed_yet"), show_alert: true,
+        });
+        return;
+      }
+      await bot.answerCallbackQuery(query.id);
+      try { await bot.deleteMessage(chatId, msgId); } catch { /* ignore */ }
+      if (!user.langSelected) {
+        await bot.sendMessage(chatId, t("ru", "welcome_lang"), {
+          parse_mode: "HTML",
+          reply_markup: langKeyboard(),
+        });
+      } else {
+        user.step = "main_menu";
+        setUser(userId, user);
+        await sendMainMenu(chatId, userId);
+      }
+      return;
+    }
 
     await bot.answerCallbackQuery(query.id);
 

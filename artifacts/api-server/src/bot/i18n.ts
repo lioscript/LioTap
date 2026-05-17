@@ -175,6 +175,16 @@ export const texts: Record<Lang, Record<string, string>> = {
     help_text:
       "🆘 <b>Помощь</b>\n\nПо всем вопросам обращайтесь:\n👤 @li0nchik\n\n⏱ Время ответа: до 1 часа",
     purchases_header: "📦 <b>Ваши покупки:</b>\n\n",
+
+    subscribe_required:
+      "📢 <b>Обязательная подписка</b>\n\n" +
+      "Для использования бота необходимо подписаться на наш канал:\n\n" +
+      "👉 @liotap\n\n" +
+      "После подписки нажмите кнопку ниже 👇",
+    btn_subscribe: "📢 Подписаться на канал",
+    btn_check_sub: "✅ Я подписался",
+    not_subscribed_yet:
+      "❌ Вы ещё не подписались на канал @liotap.\n\nПодпишитесь и нажмите «Я подписался».",
   },
 
   en: {
@@ -349,6 +359,16 @@ export const texts: Record<Lang, Record<string, string>> = {
     help_text:
       "🆘 <b>Help & Support</b>\n\nContact admin:\n👤 @li0nchik\n\n⏱ Response time: up to 1 hour",
     purchases_header: "📦 <b>Your purchases:</b>\n\n",
+
+    subscribe_required:
+      "📢 <b>Subscription Required</b>\n\n" +
+      "To use this bot you must subscribe to our channel:\n\n" +
+      "👉 @liotap\n\n" +
+      "After subscribing, press the button below 👇",
+    btn_subscribe: "📢 Subscribe to channel",
+    btn_check_sub: "✅ I've subscribed",
+    not_subscribed_yet:
+      "❌ You haven't subscribed to @liotap yet.\n\nSubscribe and press «I've subscribed».",
   },
 
   ua: {
@@ -523,6 +543,16 @@ export const texts: Record<Lang, Record<string, string>> = {
     help_text:
       "🆘 <b>Допомога</b>\n\nЗ усіх питань:\n👤 @li0nchik\n\n⏱ Час відповіді: до 1 години",
     purchases_header: "📦 <b>Ваші покупки:</b>\n\n",
+
+    subscribe_required:
+      "📢 <b>Обов'язкова підписка</b>\n\n" +
+      "Для використання бота необхідно підписатися на наш канал:\n\n" +
+      "👉 @liotap\n\n" +
+      "Після підписки натисніть кнопку нижче 👇",
+    btn_subscribe: "📢 Підписатися на канал",
+    btn_check_sub: "✅ Я підписався",
+    not_subscribed_yet:
+      "❌ Ви ще не підписалися на канал @liotap.\n\nПідпишіться і натисніть «Я підписався».",
   },
 };
 
