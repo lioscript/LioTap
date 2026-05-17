@@ -1,4 +1,6 @@
 import TelegramBot from "node-telegram-bot-api";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import { join } from "path";
 import { logger } from "../lib/logger";
 import type { Lang } from "./i18n";
 import { t } from "./i18n";
@@ -26,16 +28,7 @@ const ADMIN_GROUP = Number(process.env["ADMIN_GROUP_ID"] ?? "0");
 if (!BOT_TOKEN)   throw new Error("TELEGRAM_BOT_TOKEN is required");
 if (!ADMIN_GROUP) throw new Error("ADMIN_GROUP_ID is required");
 
-// Load logo once at startup into a Buffer (more reliable than ReadStream)
-let logoBuffer: Buffer | undefined;
-try {
-  logoBuffer = readFileSync(join(process.cwd(), "logo.png"));
-  logger.info("Logo loaded successfully");
-} catch {
-  logger.warn("logo.png not found — main menu will show text only");
-}
-
-// Global crash guards — prevent bot from dying on unhandled errors
+// Global crash guards
 process.on("unhandledRejection", (reason) => {
   logger.error({ reason }, "Unhandled promise rejection");
 });
@@ -43,17 +36,52 @@ process.on("uncaughtException", (err) => {
   logger.error({ err }, "Uncaught exception");
 });
 
-// crypto invoices being polled: invoiceId → { userId, purchase, msgId, chatId }
+const LOGO_PATH       = join(process.cwd(), "logo.png");
+const LOGO_ID_CACHE   = join(process.cwd(), "data", "logo_file_id.txt");
+
+// crypto invoices being polled
 const cryptoPolling = new Map<number, {
   userId: number; purchase: Purchase; chatId: number; msgId: number;
 }>();
 
-// Cache Telegram file_id after first logo upload (avoid re-uploading each time)
+// Telegram file_id for the logo — loaded from disk or uploaded on first run
 let logoFileId: string | undefined;
+
+function loadCachedLogoFileId(): void {
+  try {
+    if (existsSync(LOGO_ID_CACHE)) {
+      const id = readFileSync(LOGO_ID_CACHE, "utf-8").trim();
+      if (id) { logoFileId = id; logger.info({ logoFileId }, "Logo file_id loaded from cache"); }
+    }
+  } catch { /* ignore */ }
+}
+
+async function uploadLogoIfNeeded(bot: TelegramBot, adminGroup: number): Promise<void> {
+  if (logoFileId) return;
+  if (!existsSync(LOGO_PATH)) { logger.warn("logo.png not found"); return; }
+  try {
+    const result = await bot.sendPhoto(adminGroup, LOGO_PATH, { caption: "🖼 Logo cached" });
+    const best = result.photo?.[result.photo.length - 1];
+    if (best?.file_id) {
+      logoFileId = best.file_id;
+      mkdirSync(join(process.cwd(), "data"), { recursive: true });
+      writeFileSync(LOGO_ID_CACHE, logoFileId, "utf-8");
+      logger.info({ logoFileId }, "Logo uploaded and file_id cached");
+    }
+    try { await bot.deleteMessage(adminGroup, result.message_id); } catch { /* ignore */ }
+  } catch (err) {
+    logger.error({ err }, "Logo upload failed — menu will be text-only");
+  }
+}
+
+loadCachedLogoFileId();
 
 export function startBot(): void {
   const bot = new TelegramBot(BOT_TOKEN, { polling: true });
   logger.info({ adminGroup: ADMIN_GROUP }, "Telegram bot started");
+
+  // Upload logo on startup (only if not cached yet)
+  void uploadLogoIfNeeded(bot, ADMIN_GROUP);
 
   // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -80,28 +108,29 @@ export function startBot(): void {
   }
 
   async function sendMainMenu(chatId: number, userId: number): Promise<void> {
-    const user = getUser(userId);
-    const lang = user?.lang ?? "ru";
-    const name = user?.username ?? "друг";
-    await bot.sendMessage(chatId, t(lang, "main_menu_text", { name }), {
-      parse_mode: "HTML",
-      reply_markup: mainMenuKeyboard(lang),
-    });
+    const user   = getUser(userId);
+    const lang   = user?.lang ?? "ru";
+    const name   = user?.username ?? "друг";
+    const text   = t(lang, "main_menu_text", { name });
+    const markup = mainMenuKeyboard(lang);
+
+    if (logoFileId) {
+      try {
+        await bot.sendPhoto(chatId, logoFileId, {
+          caption: text, parse_mode: "HTML", reply_markup: markup,
+        });
+        return;
+      } catch {
+        logoFileId = undefined; // file_id expired — fall back to text
+      }
+    }
+    await bot.sendMessage(chatId, text, { parse_mode: "HTML", reply_markup: markup });
   }
 
   async function editToMainMenu(chatId: number, msgId: number, userId: number): Promise<void> {
-    const user = getUser(userId);
-    const lang = user?.lang ?? "ru";
-    const name = user?.username ?? "друг";
-    try {
-      await bot.editMessageText(t(lang, "main_menu_text", { name }), {
-        chat_id: chatId, message_id: msgId,
-        parse_mode: "HTML",
-        reply_markup: mainMenuKeyboard(lang),
-      });
-    } catch {
-      await sendMainMenu(chatId, userId);
-    }
+    // Delete old message and send fresh (photo can't be edited to/from text)
+    try { await bot.deleteMessage(chatId, msgId); } catch { /* ignore */ }
+    await sendMainMenu(chatId, userId);
   }
 
   async function editMsg(
