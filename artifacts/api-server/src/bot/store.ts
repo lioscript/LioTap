@@ -45,7 +45,7 @@ interface PersistedData {
 }
 
 // ── Paths ──────────────────────────────────────────────────────────────────────
-const DATA_DIR  = join(process.cwd(), "data");
+const DATA_DIR  = process.env["DATA_DIR"] ?? join(process.cwd(), "data");
 const DATA_FILE = join(DATA_DIR, "store.json");
 
 // ── In-memory maps ─────────────────────────────────────────────────────────────

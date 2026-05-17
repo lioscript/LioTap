@@ -38,8 +38,9 @@ process.on("uncaughtException", (err) => {
   logger.error({ err }, "Uncaught exception");
 });
 
+const DATA_DIR        = process.env["DATA_DIR"] ?? join(process.cwd(), "data");
 const LOGO_PATH       = join(process.cwd(), "logo.png");
-const LOGO_ID_CACHE   = join(process.cwd(), "data", "logo_file_id.txt");
+const LOGO_ID_CACHE   = join(DATA_DIR, "logo_file_id.txt");
 
 const GAME_IMAGES: Record<string, string> = {
   standoff2:  join(process.cwd(), "games", "standoff.jpeg"),
@@ -47,7 +48,7 @@ const GAME_IMAGES: Record<string, string> = {
   pubgmobile: join(process.cwd(), "games", "pubg.jpeg"),
   fcmobile:   join(process.cwd(), "games", "fifa.jpeg"),
 };
-const GAME_IDS_CACHE = join(process.cwd(), "data", "game_file_ids.json");
+const GAME_IDS_CACHE = join(DATA_DIR, "game_file_ids.json");
 const gameFileIds: Record<string, string> = {};
 
 function loadCachedGameFileIds(): void {
@@ -90,6 +91,9 @@ loadCachedGameFileIds();
 const cryptoPolling = new Map<number, {
   userId: number; purchase: Purchase; chatId: number; msgId: number;
 }>();
+
+// orders for which admin was already notified (prevents duplicate notifications)
+const notifiedOrders = new Set<string>();
 
 // Telegram file_id for the logo — loaded from disk or uploaded on first run
 let logoFileId: string | undefined;
@@ -823,25 +827,29 @@ export function startBot(): void {
         return;
       }
 
-      const { purchase } = pending;
-      const gameName   = GAME_LABELS[purchase.game]            ?? purchase.game;
-      const deviceName = DEVICE_LABELS["ru"]?.[purchase.device] ?? purchase.device;
-      const periodName = PERIOD_LABELS["ru"]?.[purchase.period]  ?? purchase.period;
-      const productStr = `${gameName} ${deviceName}`;
+      // Prevent duplicate admin notifications for same order
+      if (!notifiedOrders.has(orderId)) {
+        notifiedOrders.add(orderId);
 
-      const methodEmoji = purchase.paymentMethod === "card" ? "💳" : "🥇";
-      const methodLabel = purchase.paymentMethod === "card"
-        ? `Картка (UAH)` : `Gold`;
+        const { purchase } = pending;
+        const gameName   = GAME_LABELS[purchase.game]            ?? purchase.game;
+        const deviceName = DEVICE_LABELS["ru"]?.[purchase.device] ?? purchase.device;
+        const periodName = PERIOD_LABELS["ru"]?.[purchase.period]  ?? purchase.period;
+        const productStr = `${gameName} ${deviceName}`;
 
-      await notifyAdmin(
-        `${methodEmoji} <b>Перевірка оплати</b>\n` +
-        `👤 @${user.username}\n` +
-        `🎮 ${productStr}\n` +
-        `⏳ ${periodName}\n` +
-        `💰 <b>${purchase.amount} ${purchase.currency}</b> — ${methodLabel}\n` +
-        `🆔 <code>${orderId}</code>`,
-        adminPaymentKeyboard(orderId),
-      );
+        const methodEmoji = purchase.paymentMethod === "card" ? "💳" : "🥇";
+        const methodLabel = purchase.paymentMethod === "card" ? "Картка (UAH)" : "Gold";
+
+        await notifyAdmin(
+          `${methodEmoji} <b>Перевірка оплати</b>\n` +
+          `👤 @${user.username}\n` +
+          `🎮 ${productStr}\n` +
+          `⏳ ${periodName}\n` +
+          `💰 <b>${purchase.amount} ${purchase.currency}</b> — ${methodLabel}\n` +
+          `🆔 <code>${orderId}</code>`,
+          adminPaymentKeyboard(orderId),
+        );
+      }
 
       await bot.answerCallbackQuery(query.id, {
         text: t(lang, "payment_checking"), show_alert: true,
