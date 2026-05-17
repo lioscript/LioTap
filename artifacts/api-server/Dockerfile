@@ -19,7 +19,11 @@ COPY --from=builder /workspace/artifacts/api-server/dist ./dist
 COPY --from=builder /workspace/artifacts/api-server/logo.png ./logo.png
 COPY --from=builder /workspace/artifacts/api-server/games ./games
 
-RUN mkdir -p data
+RUN mkdir -p /data
+
+ENV DATA_DIR=/data
+
+VOLUME ["/data"]
 
 EXPOSE 8080
 
