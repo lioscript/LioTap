@@ -24,6 +24,7 @@ import { createInvoice, checkInvoice } from "./cryptobot";
 
 const BOT_TOKEN        = process.env["TELEGRAM_BOT_TOKEN"] ?? "";
 const ADMIN_GROUP      = Number(process.env["ADMIN_GROUP_ID"] ?? "0");
+const OWNER_ID         = Number(process.env["OWNER_ID"] ?? "0");
 const CHANNEL_USERNAME = "@liotap";
 
 if (!BOT_TOKEN)   throw new Error("TELEGRAM_BOT_TOKEN is required");
@@ -445,6 +446,15 @@ export function startBot(): void {
 
     // ── Admin group ────────────────────────────────────────────────────────────
     if (chatId === ADMIN_GROUP) {
+      if (data.startsWith("approve_") || data.startsWith("reject_")) {
+        if (userId !== OWNER_ID) {
+          await bot.answerCallbackQuery(query.id, {
+            text: "⛔ Тільки власник може підтверджувати оплати.",
+            show_alert: true,
+          });
+          return;
+        }
+      }
       if (data.startsWith("approve_")) {
         const orderId = data.slice(8);
         const pending = getPendingPayment(orderId);
