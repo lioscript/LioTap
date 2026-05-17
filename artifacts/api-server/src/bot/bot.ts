@@ -1,6 +1,4 @@
 import TelegramBot from "node-telegram-bot-api";
-import { readFileSync } from "fs";
-import { join } from "path";
 import { logger } from "../lib/logger";
 import type { Lang } from "./i18n";
 import { t } from "./i18n";

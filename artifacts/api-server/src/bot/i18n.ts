@@ -9,12 +9,12 @@ export const texts: Record<Lang, Record<string, string>> = {
     lang_set: "✅ Язык: <b>Русский</b>",
 
     main_menu_text:
-      "<tg-emoji emoji-id=\"5199982690077545410\">🏆</tg-emoji> <b>LioTap Shop</b>\n\n" +
+      "🏆 <b>LioTap Shop</b>\n\n" +
       "👋 Привет, <b>{name}</b>!\n\n" +
-      "<tg-emoji emoji-id=\"5368324170671202286\">⚡</tg-emoji> Премиум читы для топовых мобильных игр.\n" +
-      "<tg-emoji emoji-id=\"5471952986970267163\">💎</tg-emoji> Мгновенная выдача после оплаты.\n" +
+      "⚡ Премиум читы для топовых мобильных игр.\n" +
+      "💎 Мгновенная выдача после оплаты.\n" +
       "🛡 100% безопасно • необнаруживаемо • ежедневные обновления.\n" +
-      "<tg-emoji emoji-id=\"5199982690077545410\">🔥</tg-emoji> Standoff 2 • PUBG Mobile • Brawlstars • FC Mobile\n\n" +
+      "🔥 Standoff 2 • PUBG Mobile • Brawlstars • FC Mobile\n\n" +
       "👇 Выберите действие:",
 
     btn_buy: "🎮 Купить ключ",
