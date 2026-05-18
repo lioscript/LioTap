@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db, usersTable, purchasesTable, referralsTable, settingsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import type { Lang } from "./i18n";
@@ -107,8 +107,50 @@ function dbSaveReferral(ref: ReferralLink): void {
   }).catch(err => logger.error({ err }, "DB saveReferral failed"));
 }
 
-// ── Init: load everything from DB into memory ──────────────────────────────────
+// ── Init: create tables if needed, then load into memory ──────────────────────
 export async function initStore(): Promise<void> {
+  // Auto-create tables on first deploy (idempotent)
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS bot_users (
+      user_id        BIGINT PRIMARY KEY,
+      username       TEXT NOT NULL,
+      lang           TEXT NOT NULL DEFAULT 'ru',
+      lang_selected  BOOLEAN NOT NULL DEFAULT false,
+      step           TEXT NOT NULL DEFAULT 'main_menu',
+      game           TEXT,
+      device         TEXT,
+      period         TEXT,
+      payment_method TEXT,
+      referred_by    TEXT,
+      joined_at      TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS bot_purchases (
+      id             TEXT PRIMARY KEY,
+      user_id        BIGINT NOT NULL,
+      game           TEXT NOT NULL,
+      device         TEXT NOT NULL,
+      period         TEXT NOT NULL,
+      payment_method TEXT NOT NULL,
+      amount         TEXT NOT NULL,
+      currency       TEXT NOT NULL,
+      status         TEXT NOT NULL DEFAULT 'pending',
+      created_at     TIMESTAMP NOT NULL DEFAULT NOW(),
+      message_id     INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS bot_referrals (
+      code             TEXT PRIMARY KEY,
+      creator_id       BIGINT NOT NULL,
+      creator_username TEXT NOT NULL,
+      clicks           INTEGER NOT NULL DEFAULT 0,
+      conversions      INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS bot_settings (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+  `);
+  logger.info("DB tables ensured");
+
   try {
     const [dbUsers, dbPurchases, dbRefs, earnedRows] = await Promise.all([
       db.select().from(usersTable),
