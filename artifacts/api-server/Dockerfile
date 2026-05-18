@@ -23,8 +23,6 @@ RUN mkdir -p /data
 
 ENV DATA_DIR=/data
 
-VOLUME ["/data"]
-
 EXPOSE 8080
 
 CMD ["node", "--enable-source-maps", "./dist/index.mjs"]
