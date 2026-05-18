@@ -80,6 +80,7 @@ export function paymentKeyboard(lang: Lang): TelegramBot.InlineKeyboardMarkup {
       [{ text: t(lang, "pay_card"), callback_data: "pay_card" }],
       [{ text: t(lang, "pay_crypto"), callback_data: "pay_crypto" }],
       [{ text: t(lang, "pay_gold"), callback_data: "pay_gold" }],
+      [{ text: t(lang, "pay_stars"), callback_data: "pay_stars" }],
       [{ text: t(lang, "back"), callback_data: "back_period" }],
     ],
   };

@@ -17,7 +17,7 @@ import {
   accountKeyboard,
 } from "./keyboards";
 import {
-  CARD_NUMBER, PRICES_UAH, PRICES_USDT, PRICES_GOLD,
+  CARD_NUMBER, PRICES_UAH, PRICES_USDT, PRICES_GOLD, PRICES_STARS,
   PERIOD_LABELS, GAME_LABELS, DEVICE_LABELS, getPaymentMethodLabel,
 } from "./prices";
 import { createInvoice, checkInvoice } from "./cryptobot";
@@ -812,6 +812,27 @@ export function startBot(): void {
           product: productStr, period: periodName, orderId, amount,
         });
         await editMsg(chatId, msgId, invoiceText, goldInvoiceKeyboard(lang, orderId));
+
+      } else if (method === "stars") {
+        const starsAmount = PRICES_STARS[period] ?? 0;
+        const purchase: Purchase = {
+          id: orderId, game, device, period,
+          paymentMethod: "stars", amount: String(starsAmount), currency: "XTR",
+          status: "pending", createdAt: new Date(),
+        };
+        addPendingPayment(orderId, userId, purchase);
+
+        try { await bot.deleteMessage(chatId, msgId); } catch { /* ignore */ }
+
+        await bot.sendInvoice(
+          chatId,
+          "⭐ LioTap Shop",
+          `${productStr} — ${periodName}`,
+          orderId,
+          "",
+          "XTR",
+          [{ label: productStr, amount: starsAmount }],
+        );
       }
       return;
     }
@@ -855,6 +876,71 @@ export function startBot(): void {
         text: t(lang, "payment_checking"), show_alert: true,
       });
       return;
+    }
+  });
+
+  // ── Telegram Stars: pre-checkout (must answer within 10s) ───────────────────
+  bot.on("pre_checkout_query", async (query) => {
+    try {
+      await bot.answerPreCheckoutQuery(query.id, true);
+    } catch (err) {
+      logger.error({ err }, "answerPreCheckoutQuery failed");
+    }
+  });
+
+  // ── Telegram Stars: successful payment ──────────────────────────────────────
+  bot.on("message", async (msg) => {
+    if (!msg.successful_payment) return;
+    const userId  = msg.from!.id;
+    const chatId  = msg.chat.id;
+    const orderId = msg.successful_payment.invoice_payload;
+
+    const pending = getPendingPayment(orderId);
+    if (!pending) return;
+
+    const { purchase } = pending;
+    purchase.status = "approved";
+    removePendingPayment(orderId);
+    notifiedOrders.delete(orderId);
+
+    const buyer = getUser(userId);
+    if (buyer) {
+      buyer.purchases.push(purchase);
+      setUser(userId, buyer);
+    }
+
+    const starsAmount = Number(purchase.amount);
+    addEarned(starsAmount);
+
+    const lang = buyer?.lang ?? "ru";
+    const messages: Record<string, string> = {
+      ru: "✅ <b>Оплата звёздами подтверждена!</b>\n\n🎉 Ваш заказ обработан автоматически!\n💬 Ключ будет выдан в ближайшее время.\nПо вопросам: @li0nchik",
+      en: "✅ <b>Stars payment confirmed!</b>\n\n🎉 Your order was processed automatically!\n💬 Key will be issued shortly.\nQuestions: @li0nchik",
+      ua: "✅ <b>Оплата зірками підтверджена!</b>\n\n🎉 Ваше замовлення оброблено автоматично!\n💬 Ключ буде виданий найближчим часом.\nПитання: @li0nchik",
+    };
+    await bot.sendMessage(chatId, messages[lang] ?? messages["ru"], { parse_mode: "HTML" });
+
+    const gameName   = GAME_LABELS[purchase.game]            ?? purchase.game;
+    const deviceName = DEVICE_LABELS["ru"]?.[purchase.device] ?? purchase.device;
+    const periodName = PERIOD_LABELS["ru"]?.[purchase.period]  ?? purchase.period;
+
+    await notifyAdmin(
+      `⭐ <b>Авто-оплата Telegram Stars!</b>\n\n` +
+      `👤 Покупець: @${buyer?.username ?? userId}\n` +
+      `🎮 Продукт: ${gameName} ${deviceName}\n` +
+      `⏳ Термін: ${periodName}\n` +
+      `💰 Сума: <b>${purchase.amount} ⭐</b>` +
+      (buyer?.referredBy
+        ? `\n🔗 Трафікер: @${buyer.referredBy}`
+        : ""),
+    );
+
+    if (buyer?.referredBy) {
+      const trafficer = getAllUsers().find(u => u.username === buyer.referredBy);
+      if (trafficer) {
+        const refs = getReferralsByCreator(trafficer.userId);
+        if (refs[0]) incrementReferralConversion(refs[0].code);
+      }
     }
   });
 

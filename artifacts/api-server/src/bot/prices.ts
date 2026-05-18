@@ -16,6 +16,12 @@ export const PRICES_GOLD: Record<string, number> = {
   "forever": 3800,
 };
 
+export const PRICES_STARS: Record<string, number> = {
+  "7": 400,
+  "30": 1000,
+  "forever": 2000,
+};
+
 export const CARD_NUMBER = "5168752027679524";
 
 export const PERIOD_LABELS: Record<string, Record<string, string>> = {
@@ -54,6 +60,7 @@ export function getPaymentMethodLabel(method: string): string {
     card: "🇺🇦 Ukrainian card",
     crypto: "🤖 Crypto bot",
     gold: "🥇 Gold",
+    stars: "⭐ Telegram Stars",
   };
   return labels[method] ?? method;
 }

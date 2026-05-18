@@ -98,6 +98,7 @@ export const texts: Record<Lang, Record<string, string>> = {
     pay_card: "🇺🇦 Карта Украины (UAH)",
     pay_crypto: "🤖 Crypto Bot (USDT)",
     pay_gold: "🥇 Голдой",
+    pay_stars: "⭐ Telegram Stars",
 
     back: "◀️ Назад",
 
@@ -282,6 +283,7 @@ export const texts: Record<Lang, Record<string, string>> = {
     pay_card: "🇺🇦 Ukraine Card (UAH)",
     pay_crypto: "🤖 Crypto Bot (USDT)",
     pay_gold: "🥇 Gold",
+    pay_stars: "⭐ Telegram Stars",
 
     back: "◀️ Back",
 
@@ -466,6 +468,7 @@ export const texts: Record<Lang, Record<string, string>> = {
     pay_card: "🇺🇦 Картка України (UAH)",
     pay_crypto: "🤖 Crypto Bot (USDT)",
     pay_gold: "🥇 Голдою",
+    pay_stars: "⭐ Telegram Stars",
 
     back: "◀️ Назад",
 
