@@ -225,6 +225,9 @@ export function startBot(): void {
         parse_mode: "HTML", reply_markup: markup,
       });
     } catch {
+      // If the message is a photo (e.g. main menu logo), delete it first
+      // so its keyboard doesn't remain active and trigger duplicate events
+      try { await bot.deleteMessage(chatId, msgId); } catch { /* ignore */ }
       await bot.sendMessage(chatId, text, { parse_mode: "HTML", reply_markup: markup });
     }
   }
