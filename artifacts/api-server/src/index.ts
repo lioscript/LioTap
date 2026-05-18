@@ -2,7 +2,10 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { startBot } from "./bot/bot";
 
-startBot();
+startBot().catch((err) => {
+  logger.error({ err }, "Bot startup failed");
+  process.exit(1);
+});
 
 const rawPort = process.env["PORT"];
 

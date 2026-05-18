@@ -1,5 +1,5 @@
 import TelegramBot from "node-telegram-bot-api";
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import { existsSync } from "fs";
 import { join } from "path";
 import { logger } from "../lib/logger";
 import type { Lang } from "./i18n";
@@ -8,7 +8,8 @@ import {
   getUser, setUser, createUser, getUserCount, getTotalEarned,
   addEarned, addPendingPayment, getPendingPayment, removePendingPayment,
   createReferral, getReferral, getReferralsByCreator, incrementReferralClick,
-  incrementReferralConversion, getAllUsers, type Purchase,
+  incrementReferralConversion, getAllUsers, initStore, getSetting, setSetting,
+  type Purchase,
 } from "./store";
 import {
   langKeyboard, mainMenuKeyboard, gamesKeyboard, deviceKeyboard,
@@ -38,9 +39,7 @@ process.on("uncaughtException", (err) => {
   logger.error({ err }, "Uncaught exception");
 });
 
-const DATA_DIR        = process.env["DATA_DIR"] ?? join(process.cwd(), "data");
-const LOGO_PATH       = join(process.cwd(), "logo.png");
-const LOGO_ID_CACHE   = join(DATA_DIR, "logo_file_id.txt");
+const LOGO_PATH = join(process.cwd(), "logo.png");
 
 const GAME_IMAGES: Record<string, string> = {
   standoff2:  join(process.cwd(), "games", "standoff.jpeg"),
@@ -48,18 +47,7 @@ const GAME_IMAGES: Record<string, string> = {
   pubgmobile: join(process.cwd(), "games", "pubg.jpeg"),
   fcmobile:   join(process.cwd(), "games", "fifa.jpeg"),
 };
-const GAME_IDS_CACHE = join(DATA_DIR, "game_file_ids.json");
 const gameFileIds: Record<string, string> = {};
-
-function loadCachedGameFileIds(): void {
-  try {
-    if (existsSync(GAME_IDS_CACHE)) {
-      const parsed = JSON.parse(readFileSync(GAME_IDS_CACHE, "utf-8")) as Record<string, string>;
-      Object.assign(gameFileIds, parsed);
-      logger.info({ gameFileIds }, "Game file_ids loaded from cache");
-    }
-  } catch { /* ignore */ }
-}
 
 async function uploadGamePhotosIfNeeded(bot: TelegramBot, adminGroup: number): Promise<void> {
   let changed = false;
@@ -80,31 +68,8 @@ async function uploadGamePhotosIfNeeded(bot: TelegramBot, adminGroup: number): P
     }
   }
   if (changed) {
-    mkdirSync(join(process.cwd(), "data"), { recursive: true });
-    writeFileSync(GAME_IDS_CACHE, JSON.stringify(gameFileIds), "utf-8");
+    await setSetting("game_file_ids", JSON.stringify(gameFileIds));
   }
-}
-
-loadCachedGameFileIds();
-
-// crypto invoices being polled
-const cryptoPolling = new Map<number, {
-  userId: number; purchase: Purchase; chatId: number; msgId: number;
-}>();
-
-// orders for which admin was already notified (prevents duplicate notifications)
-const notifiedOrders = new Set<string>();
-
-// Telegram file_id for the logo — loaded from disk or uploaded on first run
-let logoFileId: string | undefined;
-
-function loadCachedLogoFileId(): void {
-  try {
-    if (existsSync(LOGO_ID_CACHE)) {
-      const id = readFileSync(LOGO_ID_CACHE, "utf-8").trim();
-      if (id) { logoFileId = id; logger.info({ logoFileId }, "Logo file_id loaded from cache"); }
-    }
-  } catch { /* ignore */ }
 }
 
 async function uploadLogoIfNeeded(bot: TelegramBot, adminGroup: number): Promise<void> {
@@ -115,8 +80,7 @@ async function uploadLogoIfNeeded(bot: TelegramBot, adminGroup: number): Promise
     const best = result.photo?.[result.photo.length - 1];
     if (best?.file_id) {
       logoFileId = best.file_id;
-      mkdirSync(join(process.cwd(), "data"), { recursive: true });
-      writeFileSync(LOGO_ID_CACHE, logoFileId, "utf-8");
+      await setSetting("logo_file_id", logoFileId);
       logger.info({ logoFileId }, "Logo uploaded and file_id cached");
     }
     try { await bot.deleteMessage(adminGroup, result.message_id); } catch { /* ignore */ }
@@ -125,9 +89,33 @@ async function uploadLogoIfNeeded(bot: TelegramBot, adminGroup: number): Promise
   }
 }
 
-loadCachedLogoFileId();
+// crypto invoices being polled
+const cryptoPolling = new Map<number, {
+  userId: number; purchase: Purchase; chatId: number; msgId: number;
+}>();
 
-export function startBot(): void {
+// orders for which admin was already notified (prevents duplicate notifications)
+const notifiedOrders = new Set<string>();
+
+// Telegram file_id for the logo — loaded from DB on startup
+let logoFileId: string | undefined;
+
+export async function startBot(): Promise<void> {
+  // Load all data from PostgreSQL into memory
+  await initStore();
+
+  // Restore cached Telegram file_ids from DB
+  const cachedLogoId = await getSetting("logo_file_id");
+  if (cachedLogoId) {
+    logoFileId = cachedLogoId;
+    logger.info({ logoFileId }, "Logo file_id loaded from DB");
+  }
+  const cachedGameIds = await getSetting("game_file_ids");
+  if (cachedGameIds) {
+    try { Object.assign(gameFileIds, JSON.parse(cachedGameIds) as Record<string, string>); } catch { /* ignore */ }
+    logger.info({ gameFileIds }, "Game file_ids loaded from DB");
+  }
+
   const bot = new TelegramBot(BOT_TOKEN, { polling: true });
   logger.info({ adminGroup: ADMIN_GROUP }, "Telegram bot started");
 
